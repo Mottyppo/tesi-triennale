@@ -1,0 +1,101 @@
+\section{Esempi}
+
+\subsection{Esempio di tabella}
+
+
+\begin{table}
+    \centering
+    \begin{tabular}{| m{1.8cm} ||m{1.8cm}|m{1.8cm}|m{1.8cm}|m{1.8cm}|m{1.8cm}|m{1.8cm}|}
+    \hline
+         &  fine grained & facetted & featureless & smooth-facetted & facetted-oriented & large facetted\\
+    \hline\hline
+        fine grained      & 15 & 0 & 0 & 1 & 0 & 0\\
+        \hline
+        facetted          & 0  & 12 & 0 & 0 & 0 & 0 \\[3ex]
+        \hline
+        featureless       & 0 & 0 & 1 & 1 & 0  & 0\\[3ex]
+        \hline
+        smooth-facetted   & 0 & 0 & 0 & 5 & 0 & 0 \\
+        \hline
+        facetted-oriented & 0 & 0 & 0 & 0 & 13 & 0\\
+        \hline
+        large facetted    & 0 & 0 & 0 & 0 & 0  & 2\\
+        \hline
+         
+    \end{tabular}
+    \caption{Esempio di una tabella normale.}
+    \label{tab:riferimento a tabella}
+\end{table}
+
+\begin{table}[hb]
+    \begin{tabularx}{\textwidth} {  | >{\raggedright\arraybackslash}X 
+                                    || >{\centering\arraybackslash}X 
+                                    | >{\centering\arraybackslash}X | }
+        \hline
+        & Community Hub & Business Hub \\
+        \hline\hline
+        Collaborazione & & \\
+        \hline
+        Navigazione download di componenti, estensioni e workflows & \ding{51} & \ding{51} \\
+        \hline
+        Spazio privato & \ding{51} & \ding{51} \\
+        \hline
+        Collaborare ai workflow & Solo spazi pubblici o pacchetto Team & \ding{51} \\
+        \hline
+        Accesso il lettura per gli utenti non registrati & \ding{51} & Solo pacchetto Enterprise \\
+        \hline
+        Tracciamento versioni & \ding{55} & \ding{51} \\
+        \hline
+        Collezioni & \ding{55} & Solo pacchetto Enterprise \\
+        \hline\hline
+        Automazione &  & \\
+        \hline
+        Esecuzione nell'Hub & \ding{55} & \ding{51}\\
+        \hline
+        Esecuzione programmata & \ding{55} & \ding{51}\\
+        \hline
+        Esecuzione condizionale & \ding{55} & \ding{51}\\
+        \hline
+        Vcores e ambiente dedicato e scalabile & \ding{55} & \ding{51}\\
+        \hline \hline
+        Distribuzione & & \\
+        \hline
+        Data Apps & \ding{55} & \ding{51}\\
+        \hline
+        REST API & \ding{55} & \ding{51}\\
+        \hline
+        Knime Edge & \ding{55} & \ding{51}\\
+        \hline
+
+        
+    \end{tabularx}
+    \caption{Tabella con tabularx.}
+    \label{tab:esempio tabularx}
+\end{table}
+
+
+Esempio di tabella normale a \ref{tab:riferimento a tabella}.
+
+Esempio di tabella con tabularx a \ref{tab:esempio tabularx}.
+
+\subsection{Esempio di codice}
+
+\begin{lstlisting}[style=py, caption=Script Python.]
+#for loop that traverses numbers from 1 to 100
+for i in range(1,101):
+  #check if number is divisible by both 3 and 5
+  if(i%3==0 and i%5==0):
+    print("FizzBuzz")
+  #check if number is divisible by 3
+  elif(i%3 == 0):
+    print("Fizz")
+  #check if number is divisible by 5
+  elif(i%5 == 0):
+    print("Buzz")
+  #if not divisible by either of them print the i
+  else:
+    print(i)
+\end{lstlisting}
+\label{script}
+
+Volendo si possono anche mettere note a piè di pagina\footnote{Questa è una nota a piè pagina} oppure inserire link \url{https://www.youtube.com/watch?v=G1IbRujko-A}.
