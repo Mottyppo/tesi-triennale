@@ -1,23 +1,23 @@
 % TODO: everything here ZIO PERAAAA
-% TODO: sistema la numerazione delle pagine
-% TODO: add abstract
+
+% TODO: dedica?? Ha senso??
+
 \documentclass[12pt,a4paper,hidelinks]{article}
 \input{premable}
-\textwidth=450pt\oddsidemargin=0pt
 \begin{document}
 
+% Frontespizio
+\pagenumbering{gobble}
 \include{title}
 
-%TODO: l'abstact va messo qui, prima del sommario.
+% Sommario
+\pagenumbering{roman}
+\include{abstract}
 
+% Indice
 \tableofcontents
 
-% TODO: inserisci i file contenenti le sezioni
-
-\include{chapters/00-introduzione}
-
-\include{chapters/01-sezione-esempio}
-
+% Elenchi
 \listoffigures
 
 \listoftables
@@ -25,15 +25,49 @@
 \renewcommand\lstlistlistingname{Elenco dei listati}
 \lstlistoflistings
 
-\appendix
+% TODO: inserisci i file contenenti le sezioni
+\clearpage
+\pagenumbering{arabic}
+\include{chapters/00-introduzione}
+\include{chapters/01-sezione-esempio}
 
+
+
+
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. In sollicitudin sagittis venenatis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Sed elementum, augue sit amet convallis porttitor, arcu arcu egestas sapien, ut facilisis ipsum sapien lacinia risus. Praesent ultricies, erat volutpat porttitor vulputate, justo libero consectetur massa, at imperdiet arcu nulla vel justo. In hac habitasse platea dictumst. Maecenas a dui nisi. Aenean nec euismod tortor, sed vehicula erat. Pellentesque imperdiet viverra erat, vestibulum ultrices mi egestas ac. Nullam sit amet urna sapien. Nunc eleifend elementum risus, elementum tincidunt sem scelerisque eu. Fusce commodo varius tincidunt.
+
+Pellentesque placerat sapien non purus pretium, in vehicula nisl tincidunt. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Proin congue elit maximus magna condimentum, ut facilisis neque pulvinar. Maecenas maximus neque purus. Mauris vel pharetra dolor. Aliquam ut euismod ante. Integer sit amet neque in dolor suscipit pretium. Pellentesque justo urna, scelerisque tincidunt justo sed, commodo consectetur urna. Nam aliquam finibus nisi. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Morbi sed mollis diam, a sagittis mi. Cras id bibendum ante. Fusce porttitor venenatis elit vitae malesuada.
+
+Nam libero turpis, luctus eu mi sed, rhoncus faucibus nibh. Mauris pharetra, metus consequat tempus gravida, sem dui malesuada dui, vel sodales nibh mauris fermentum dui. Aliquam a felis eu metus facilisis ullamcorper. Nulla convallis interdum iaculis. Pellentesque commodo ultrices massa, ut dapibus felis maximus et. Mauris ultricies mi vitae egestas condimentum. Suspendisse potenti. Interdum et malesuada fames ac ante ipsum primis in faucibus. Aenean feugiat erat lorem, quis auctor odio semper at. Interdum et malesuada fames ac ante ipsum primis in faucibus. Donec a vulputate justo. Interdum et malesuada fames ac ante ipsum primis in faucibus. Proin et nunc libero. Nunc in arcu convallis, gravida diam vel, sollicitudin sem. Donec venenatis, ligula nec tristique imperdiet, ipsum magna elementum odio, id malesuada nulla lorem ut leo.
+
+Interdum et malesuada fames ac ante ipsum primis in faucibus. Aliquam consequat accumsan justo, sed aliquam urna commodo in. Donec vulputate imperdiet purus, nec mollis augue molestie ac. In pellentesque, ex id eleifend porttitor, purus leo lacinia nibh, sit amet laoreet elit ligula at sem. Pellentesque congue dapibus justo, eu finibus justo viverra vitae. Phasellus blandit dui quis lorem sagittis, eu laoreet felis interdum. Cras iaculis sapien sed risus facilisis, in facilisis libero sodales. Vivamus blandit arcu eu dictum fermentum. Aliquam efficitur faucibus convallis. Nunc nec ante malesuada, consequat augue at, convallis nisl. Praesent consequat tortor eget accumsan sollicitudin. Maecenas mattis, augue et facilisis feugiat, turpis ante ultricies arcu, a tempor mauris ante id justo. In hac habitasse platea dictumst.
+
+Suspendisse potenti. Maecenas ac tellus laoreet urna rhoncus aliquam. Nam sollicitudin nisl libero, in sodales sapien porta sodales. Nulla tristique sem quis venenatis consectetur. Duis rutrum augue leo, vitae pellentesque massa vestibulum quis. Proin tincidunt tempus magna ac mattis. Ut sed ligula ligula. Aliquam consectetur posuere tortor, eu hendrerit enim feugiat venenatis. Fusce elementum massa libero, id malesuada libero euismod quis. Aenean ullamcorper iaculis tempus. Pellentesque ac felis et dui venenatis viverra. aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. In sollicitudin sagittis venenatis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Sed elementum, augue sit amet convallis porttitor, arcu arcu egestas sapien, ut facilisis ipsum sapien lacinia risus. Praesent ultricies, erat volutpat porttitor vulputate, justo libero consectetur massa, at imperdiet arcu nulla vel justo. In hac habitasse platea dictumst. Maecenas a dui nisi. Aenean nec euismod tortor, sed vehicula erat. Pellentesque imperdiet viverra erat, vestibulum ultrices mi egestas ac. Nullam sit amet urna sapien. Nunc eleifend elementum risus, elementum tincidunt sem scelerisque eu. Fusce commodo varius tincidunt.
+
+Pellentesque placerat sapien non purus pretium, in vehicula nisl tincidunt. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Proin congue elit maximus magna condimentum, ut facilisis neque pulvinar. Maecenas maximus neque purus. Mauris vel pharetra dolor. Aliquam ut euismod ante. Integer sit amet neque in dolor suscipit pretium. Pellentesque justo urna, scelerisque tincidunt justo sed, commodo consectetur urna. Nam aliquam finibus nisi. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Morbi sed mollis diam, a sagittis mi. Cras id bibendum ante. Fusce porttitor venenatis elit vitae malesuada.
+
+Nam libero turpis, luctus eu mi sed, rhoncus faucibus nibh. Mauris pharetra, metus consequat tempus gravida, sem dui malesuada dui, vel sodales nibh mauris fermentum dui. Aliquam a felis eu metus facilisis ullamcorper. Nulla convallis interdum iaculis. Pellentesque commodo ultrices massa, ut dapibus felis maximus et. Mauris ultricies mi vitae egestas condimentum. Suspendisse potenti. Interdum et malesuada fames ac ante ipsum primis in faucibus. Aenean feugiat erat lorem, quis auctor odio semper at. Interdum et malesuada fames ac ante ipsum primis in faucibus. Donec a vulputate justo. Interdum et malesuada fames ac ante ipsum primis in faucibus. Proin et nunc libero. Nunc in arcu convallis, gravida diam vel, sollicitudin sem. Donec venenatis, ligula nec tristique imperdiet, ipsum magna elementum odio, id malesuada nulla lorem ut leo.
+
+Interdum et malesuada fames ac ante ipsum primis in faucibus. Aliquam consequat accumsan justo, sed aliquam urna commodo in. Donec vulputate imperdiet purus, nec mollis augue molestie ac. In pellentesque, ex id eleifend porttitor, purus leo lacinia nibh, sit amet laoreet elit ligula at sem. Pellentesque congue dapibus justo, eu finibus justo viverra vitae. Phasellus blandit dui quis lorem sagittis, eu laoreet felis interdum. Cras iaculis sapien sed risus facilisis, in facilisis libero sodales. Vivamus blandit arcu eu dictum fermentum. Aliquam efficitur faucibus convallis. Nunc nec ante malesuada, consequat augue at, convallis nisl. Praesent consequat tortor eget accumsan sollicitudin. Maecenas mattis, augue et facilisis feugiat, turpis ante ultricies arcu, a tempor mauris ante id justo. In hac habitasse platea dictumst.
+
+Suspendisse potenti. Maecenas ac tellus laoreet urna rhoncus aliquam. Nam sollicitudin nisl libero, in sodales sapien porta sodales. Nulla tristique sem quis venenatis consectetur. Duis rutrum augue leo, vitae pellentesque massa vestibulum quis. Proin tincidunt tempus magna ac mattis. Ut sed ligula ligula. Aliquam consectetur posuere tortor, eu hendrerit enim feugiat venenatis. Fusce elementum massa libero, id malesuada libero euismod quis. Aenean ullamcorper iaculis tempus. Pellentesque ac felis et dui venenatis viverra.
+
+
+
+
+
+% TODO: appendici??
+\appendix
 \include{appendices/A-appendice}
 
-% mostra tutte le citazioni anche se non sono state citate esplicitamente
+% Bibliografia
 \nocite{*}
-
 \printbibliography
 
+% Ringraziamenti
 \include{ringraziamenti}
 
 \end{document}

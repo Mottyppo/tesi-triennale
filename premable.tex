@@ -1,11 +1,17 @@
-% TODO: review, complete and adapt based on needs
+%TODO: margin bottom ??
 \usepackage[english,italian]{babel}
-\usepackage{amsmath, amssymb, pifont, geometry, tikz, hyperref, newlfont, graphicx, caption, array, multirow, tabularx, svg, pdfpages}
+\usepackage{amsmath, amssymb, pifont, tikz, hyperref, newlfont, graphicx, caption, array, multirow, tabularx, svg, pdfpages}
 \usepackage{listings}
 \renewcommand{\lstlistingname}{Listato}
 \usepackage{xcolor}
 \usepackage{setspace}
 \usepackage{csquotes}
+\usepackage[
+    top=3cm,
+    bottom=3.2cm,
+    left=3cm,
+    right=2.5cm
+]{geometry}
 \usepackage[
 backend=biber,
 style=numeric,
@@ -13,57 +19,27 @@ sorting=ynt
 ]{biblatex}
 \addbibresource{bibliography/bibliography.bib}
 
+%TODO: va messo l'indent o no ????     \setlength{\parindent}{0pt}
+
+\graphicspath{ {figures/} }
+
 \hypersetup{
 bookmarksopen=true,	
-pdfauthor=Riccardo Valtorta
+pdfauthor=Matteo Mottinelli
 }
 
-\lstdefinestyle{myStyle}{
-  language=SQL,
-  basicstyle=\small\ttfamily,
-  keepspaces=true
-}
-
-\lstdefinestyle{myStyle2}{
-  language=SQL,
-  basicstyle=\small\ttfamily,
-  keepspaces=true,
-  numbers = left,
-  numbersep=1pt
-}
-
-\definecolor{codegreen}{rgb}{0,0.6,0}
-\definecolor{codegray}{rgb}{0.5,0.5,0.5}
-\definecolor{codepurple}{rgb}{0.58,0,0.82}
-\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
-
-\lstdefinestyle{myStyle3}{
-    language=SQL,
-    backgroundcolor=\color{backcolour},   
-    commentstyle=\color{codegreen},
-    keywordstyle=\color{magenta},
-    numberstyle=\tiny\color{codegray},
-    stringstyle=\color{codepurple},
-    basicstyle=\ttfamily\footnotesize,
-    breakatwhitespace=false,         
-    breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
-    numbers=left,                    
-    numbersep=5pt,                  
-    showspaces=false,                
-    showstringspaces=false,
-    showtabs=false,                  
-    tabsize=2
-}
+\definecolor{codeGreen}{rgb}{0,0.6,0}
+\definecolor{codeGray}{rgb}{0.5,0.5,0.5}
+\definecolor{codePurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolor}{rgb}{0.95,0.95,0.92}
 
 \lstdefinestyle{py}{
     language=Python,
-    backgroundcolor=\color{backcolour},   
-    commentstyle=\color{codegreen},
+    backgroundcolor=\color{backcolor},   
+    commentstyle=\color{codeGreen},
     keywordstyle=\color{magenta},
-    numberstyle=\tiny\color{codegray},
-    stringstyle=\color{codepurple},
+    numberstyle=\tiny\color{codeGray},
+    stringstyle=\color{codePurple},
     basicstyle=\ttfamily\footnotesize,
     breakatwhitespace=false,         
     breaklines=true,                 
@@ -74,5 +50,5 @@ pdfauthor=Riccardo Valtorta
     showspaces=false,                
     showstringspaces=false,
     showtabs=false,                  
-    tabsize=2
+    tabsize=4
 }
