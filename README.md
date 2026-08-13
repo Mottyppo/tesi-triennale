@@ -10,4 +10,4 @@ Relazione finale del Corso di Laurea in Ingegneria Informatica, Dipartimento di 
 **Relatori:** Alessandro Gnutti e Riccardo Leonardi  
 **Anno accademico:** 2025/2026
 
-Il frontespizio completo è disponibile anche in [main.pdf](main.pdf).
+Il documento completo è disponibile in [main.pdf](main.pdf).
