@@ -6,7 +6,7 @@ Correggere il Capitolo 1 della tesi e completare la bibliografia utilizzando le 
 
 ## Perimetro
 
-- sostituire la voce bibliografica fittizia attualmente presente con una voce BibLaTeX per ciascuno dei 19 file contenuti in `docs/`;
+- sostituire la voce bibliografica fittizia attualmente presente con una voce BibLaTeX per ciascuno dei 21 file contenuti in `docs/`;
 - identificare per ogni fonte autore o ente, titolo, anno e dati editoriali disponibili, distinguendo articoli, atti di conferenza, rapporti, norme, risorse online e materiale audiovisivo;
 - mantenere chiavi bibliografiche leggibili e stabili e correggere tutte le chiavi già richiamate dal Capitolo 1;
 - associare le citazioni alle sole affermazioni effettivamente sostenute dalle rispettive fonti;
@@ -32,4 +32,4 @@ Al termine dell'intervento verranno eseguiti:
 
 ## Criteri di completamento
 
-Il lavoro è concluso quando tutti i 19 file in `docs/` hanno una voce bibliografica, il Capitolo 1 non contiene citazioni irrisolte o affermazioni incompatibili con le fonti consultate e il documento viene compilato senza errori bibliografici.
+Il lavoro è concluso quando tutti i 21 file in `docs/` hanno una voce bibliografica, il Capitolo 1 non contiene citazioni irrisolte o affermazioni incompatibili con le fonti consultate e il documento viene compilato senza errori bibliografici.
