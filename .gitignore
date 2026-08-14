@@ -1,5 +1,6 @@
 # ---> TeX
 .DS_Store
+.worktrees/
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
