@@ -1,0 +1,118 @@
+\chapter{Esempi}
+
+\section{Esempio di tabella}
+
+\begin{table}
+    \centering
+    \begin{tabular}{| m{1.8cm} ||m{1.8cm}|m{1.8cm}|m{1.8cm}|m{1.8cm}|m{1.8cm}|m{1.8cm}|}
+    \hline
+         &  fine grained & facetted & featureless & smooth-facetted & facetted-oriented & large facetted\\
+    \hline\hline
+        fine grained      & 15 & 0 & 0 & 1 & 0 & 0\\
+        \hline
+        facetted          & 0  & 12 & 0 & 0 & 0 & 0 \\[3ex]
+        \hline
+        featureless       & 0 & 0 & 1 & 1 & 0  & 0\\[3ex]
+        \hline
+        smooth-facetted   & 0 & 0 & 0 & 5 & 0 & 0 \\
+        \hline
+        facetted-oriented & 0 & 0 & 0 & 0 & 13 & 0\\
+        \hline
+        large facetted    & 0 & 0 & 0 & 0 & 0  & 2\\
+        \hline
+         
+    \end{tabular}
+    \caption{Esempio di una tabella normale.}
+    \label{tab:riferimento a tabella}
+\end{table}
+
+\begin{table}[hb]
+    \begin{tabularx}{\textwidth} {  | >{\raggedright\arraybackslash}X 
+                                    || >{\centering\arraybackslash}X 
+                                    | >{\centering\arraybackslash}X | }
+        \hline
+        & Community Hub & Business Hub \\
+        \hline\hline
+        Collaborazione & & \\
+        \hline
+        Navigazione download di componenti, estensioni e workflows & \ding{51} & \ding{51} \\
+        \hline
+        Spazio privato & \ding{51} & \ding{51} \\
+        \hline
+        Collaborare ai workflow & Solo spazi pubblici o pacchetto Team & \ding{51} \\
+        \hline
+        Accesso il lettura per gli utenti non registrati & \ding{51} & Solo pacchetto Enterprise \\
+        \hline
+        Tracciamento versioni & \ding{55} & \ding{51} \\
+        \hline
+        Collezioni & \ding{55} & Solo pacchetto Enterprise \\
+        \hline\hline
+        Automazione &  & \\
+        \hline
+        Esecuzione nell'Hub & \ding{55} & \ding{51}\\
+        \hline
+        Esecuzione programmata & \ding{55} & \ding{51}\\
+        \hline
+        Esecuzione condizionale & \ding{55} & \ding{51}\\
+        \hline
+        Vcores e ambiente dedicato e scalabile & \ding{55} & \ding{51}\\
+        \hline \hline
+        Distribuzione & & \\
+        \hline
+        Data Apps & \ding{55} & \ding{51}\\
+        \hline
+        REST API & \ding{55} & \ding{51}\\
+        \hline
+        Knime Edge & \ding{55} & \ding{51}\\
+        \hline
+
+        
+    \end{tabularx}
+    \caption{Tabella con tabularx.}
+    \label{tab:esempio tabularx}
+\end{table}
+
+
+Esempio di tabella normale a \ref{tab:riferimento a tabella}.
+
+Esempio di tabella con tabularx a \ref{tab:esempio tabularx}.
+
+\section{Esempio di codice}
+
+\begin{lstlisting}[style=py, caption=Script Python.]
+#for loop that traverses numbers from 1 to 100
+for i in range(1,101):
+  #check if number is divisible by both 3 and 5
+  if(i%3==0 and i%5==0):
+    print("FizzBuzz")
+  #check if number is divisible by 3
+  elif(i%3 == 0):
+    print("Fizz")
+  #check if number is divisible by 5
+  elif(i%5 == 0):
+    print("Buzz")
+  #if not divisible by either of them print the i
+  else:
+    print(i)
+\end{lstlisting}
+\label{script}
+
+\section{Esempio di figura}
+%TODO: inserisci degli esempi di figure qua
+Sarebbero da inserire delle figure qua ma vedrò se farlo o no, magari dopo.
+
+\section{Esempio di note a piè di pagina e link}
+
+Volendo si possono anche mettere note a piè di pagina\footnote{Questa è una nota a piè pagina} oppure inserire link \url{https://www.youtube.com/watch?v=G1IbRujko-A}.
+
+\section{Lorem ipsum}
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. In sollicitudin sagittis venenatis. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Sed elementum, augue sit amet convallis porttitor, arcu arcu egestas sapien, ut facilisis ipsum sapien lacinia risus. Praesent ultricies, erat volutpat porttitor vulputate, justo libero consectetur massa, at imperdiet arcu nulla vel justo. In hac habitasse platea dictumst. Maecenas a dui nisi. Aenean nec euismod tortor, sed vehicula erat. Pellentesque imperdiet viverra erat, vestibulum ultrices mi egestas ac. Nullam sit amet urna sapien. Nunc eleifend elementum risus, elementum tincidunt sem scelerisque eu. Fusce commodo varius tincidunt.
+
+Pellentesque placerat sapien non purus pretium, in vehicula nisl tincidunt. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Proin congue elit maximus magna condimentum, ut facilisis neque pulvinar. Maecenas maximus neque purus. Mauris vel pharetra dolor. Aliquam ut euismod ante. Integer sit amet neque in dolor suscipit pretium. Pellentesque justo urna, scelerisque tincidunt justo sed, commodo consectetur urna. Nam aliquam finibus nisi. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Morbi sed mollis diam, a sagittis mi. Cras id bibendum ante. Fusce porttitor venenatis elit vitae malesuada.
+
+Nam libero turpis, luctus eu mi sed, rhoncus faucibus nibh. Mauris pharetra, metus consequat tempus gravida, sem dui malesuada dui, vel sodales nibh mauris fermentum dui. Aliquam a felis eu metus facilisis ullamcorper. Nulla convallis interdum iaculis. Pellentesque commodo ultrices massa, ut dapibus felis maximus et. Mauris ultricies mi vitae egestas condimentum. Suspendisse potenti. Interdum et malesuada fames ac ante ipsum primis in faucibus. Aenean feugiat erat lorem, quis auctor odio semper at. Interdum et malesuada fames ac ante ipsum primis in faucibus. Donec a vulputate justo. Interdum et malesuada fames ac ante ipsum primis in faucibus. Proin et nunc libero. Nunc in arcu convallis, gravida diam vel, sollicitudin sem. Donec venenatis, ligula nec tristique imperdiet, ipsum magna elementum odio, id malesuada nulla lorem ut leo.
+
+Interdum et malesuada fames ac ante ipsum primis in faucibus. Aliquam consequat accumsan justo, sed aliquam urna commodo in. Donec vulputate imperdiet purus, nec mollis augue molestie ac. In pellentesque, ex id eleifend porttitor, purus leo lacinia nibh, sit amet laoreet elit ligula at sem. Pellentesque congue dapibus justo, eu finibus justo viverra vitae. Phasellus blandit dui quis lorem sagittis, eu laoreet felis interdum. Cras iaculis sapien sed risus facilisis, in facilisis libero sodales. Vivamus blandit arcu eu dictum fermentum. Aliquam efficitur faucibus convallis. Nunc nec ante malesuada, consequat augue at, convallis nisl. Praesent consequat tortor eget accumsan sollicitudin. Maecenas mattis, augue et facilisis feugiat, turpis ante ultricies arcu, a tempor mauris ante id justo. In hac habitasse platea dictumst.
+
+Suspendisse potenti. Maecenas ac tellus laoreet urna rhoncus aliquam. Nam sollicitudin nisl libero, in sodales sapien porta sodales. Nulla tristique sem quis venenatis consectetur. Duis rutrum augue leo, vitae pellentesque massa vestibulum quis. Proin tincidunt tempus magna ac mattis. Ut sed ligula ligula. Aliquam consectetur posuere tortor, eu hendrerit enim feugiat venenatis. Fusce elementum massa libero, id malesuada libero euismod quis. Aenean ullamcorper iaculis tempus. Pellentesque ac felis et dui venenatis viverra. aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
