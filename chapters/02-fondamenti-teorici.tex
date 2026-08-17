@@ -1,4 +1,256 @@
 \chapter{Fondamenti Teorici}
 
-%TODO: scrivere tutto
-Testo segnaposto.
+Il sistema sviluppato nel presente lavoro nasce dalla revisione di un'architettura esistente per la rilevazione precoce di situazioni di pericolo in piscina. Per comprendere le scelte progettuali adottate è quindi necessario descrivere, seppure sinteticamente, il funzionamento del sistema di riferimento e le informazioni scambiate tra le sue diverse fasi. Il capitolo introduce dapprima il \textit{Drowning Early Warning System} (DEWS); successivamente presenta i principi alla base di \textit{You Only Look Once} (YOLO) e conclude discutendo le motivazioni che hanno condotto alla sostituzione del modulo di rilevazione originale.
+
+\section{Il Drowning Early Warning System}
+
+DEWS è un sistema di videosorveglianza progettato per individuare precocemente comportamenti compatibili con una situazione di crisi in acqua. L'architettura impiega una rete di telecamere installate in posizione sopraelevata intorno alla piscina. Ciascuna telecamera osserva una regione locale della vasca, parzialmente sovrapposta a quelle adiacenti, mentre l'unione delle inquadrature assicura la copertura dell'intera area di interesse. Questa configurazione permette di analizzare il comportamento del soggetto durante le fasi iniziali della crisi e, compatibilmente con le condizioni di visibilità attraverso l'acqua, di continuare a osservarlo anche durante una sommersione. L'efficacia della rilevazione in questa seconda condizione dipende tuttavia dai riflessi, dall'agitazione della superficie, dalla trasparenza dell'acqua e dalla profondità del soggetto \cite{Eng2008DEWS}.
+
+La \textit{pipeline} può essere ricondotta a tre fasi principali. La prima individua i bagnanti nell'immagine, separa le silhouette che risultano connesse e associa nel tempo le osservazioni appartenenti allo stesso soggetto. La seconda trasforma la storia di ciascuna traccia in un insieme compatto di descrittori geometrici, cinematici e cromatici. La terza combina tali descrittori e ne analizza l'evoluzione temporale per distinguere il nuoto ordinario, il mantenimento volontario della posizione verticale e una potenziale situazione di crisi \cite{Eng2008DEWS}.
+
+%TODO: [FIGURA] QUI -- Schema delle tre fasi della pipeline DEWS e delle informazioni scambiate tra rilevazione, descrizione e classificazione.
+
+\subsection{Rilevazione, separazione e tracciamento dei bagnanti}
+
+La rilevazione dei bagnanti è resa complessa dalla natura dello sfondo. La superficie dell'acqua non è statica: onde, riflessi, ombre, schizzi e spostamenti apparenti delle corsie producono variazioni anche quando nessun soggetto attraversa una determinata regione. Per limitare i falsi positivi, DEWS suddivide l'immagine in blocchi e rappresenta il \textit{background} attraverso regioni cromaticamente omogenee. I colori sono espressi nello spazio CIE $L^*a^*b^*$ e i modelli appartenenti a blocchi vicini vengono inclusi nella ricerca, così da tollerare piccoli spostamenti degli elementi dello sfondo \cite{Eng2004Region,Eng2006Robust}.
+
+Il confronto tra l'immagine corrente e il modello regionale produce una misura di compatibilità con il \textit{background}. Due soglie, una bassa e una alta, vengono combinate secondo un principio di isteresi: la prima conserva la silhouette estesa del soggetto, mentre la seconda identifica i nuclei nei quali l'evidenza di \textit{foreground} è più forte. Le componenti connesse sufficientemente grandi della maschera risultante costituiscono i \textit{blob} candidati. Inoltre, un modello cromatico del \textit{foreground}, aggiornato durante il tracciamento, contribuisce a recuperare le parti del bagnante il cui colore è simile a quello dell'acqua \cite{Eng2006Robust,Eng2008DEWS}.
+
+Quando più persone si trovano a contatto nell'immagine, le rispettive silhouette possono confluire in un unico \textit{blob}. Il procedimento di \textit{blob splitting} valuta allora diverse ipotesi sul numero di soggetti presenti e approssima ciascun soggetto mediante un'ellisse. Indicando con $\boldsymbol{M}^t$ la maschera del \textit{blob} osservata all'istante $t$ e con $\Gamma^t=\{\gamma_1,\ldots,\gamma_k\}$ un'ipotesi composta da $k$ ellissi, il termine di verosimiglianza impiegato nel punteggio di validità è definito come
+
+\begin{equation}
+    P(\boldsymbol{M}^t\vert{}\Gamma^t)
+    \propto
+    \sum_{i=1}^{k}
+    \frac{A_{\gamma_i}^{bg}+A_{\gamma_i}^{ov}}
+         {A_{\gamma_i}^{fg}}.
+\end{equation}
+
+Le quantità $A_{\gamma_i}^{bg}$ e $A_{\gamma_i}^{fg}$ rappresentano rispettivamente il numero di pixel di \textit{background} e di \textit{foreground} racchiusi dall'ellisse $\gamma_i$, mentre $A_{\gamma_i}^{ov}$ indica i pixel di \textit{foreground} appartenenti alla zona di sovrapposizione con le altre ellissi. Il rapporto diminuisce quando le ellissi coprono una porzione maggiore della silhouette e aumenta quando includono sfondo o si sovrappongono eccessivamente. Le configurazioni vengono raffinate a partire dalla distribuzione dei pixel di \textit{foreground}; ripetendo il procedimento per differenti valori di $k$, viene selezionato come numero più plausibile di bagnanti quello associato al minimo punteggio complessivo di validità, nel quale viene considerata anche la continuità con il fotogramma precedente. Le osservazioni ottenute vengono infine associate alle tracce esistenti sulla base della posizione prevista e della compatibilità spaziale. Il tracciamento non serve soltanto a mantenere l'identità del soggetto, ma rende disponibile la storia temporale necessaria alla fase successiva \cite{Eng2008DEWS}.
+
+\subsection{Estrazione dei descrittori comportamentali}
+
+Per ogni traccia, DEWS ricava dapprima alcune proprietà di basso livello dalla silhouette: area, centroide, matrice di covarianza spaziale, orientamento e assi dell'ellisse equivalente, colore medio e saturazione media. Queste quantità descrivono il soggetto in un singolo istante, ma non sono sufficienti a caratterizzarne il comportamento. Il sistema le aggrega pertanto lungo una finestra temporale locale $\mathcal{T}$ e costruisce sei descrittori di livello intermedio \cite{Eng2008DEWS}:
+
+\begin{equation}
+    \mathbf{x}
+    =
+    \begin{bmatrix}
+        M & S & P & A & Z & U
+    \end{bmatrix}^{T}
+\end{equation}
+
+dove $M$ rappresenta l'intervallo di movimento, $S$ il prodotto delle velocità, $P$ la variazione della postura, $A$ la variazione dell'attività, $Z$ la variazione della dimensione e $U$ l'indice di sommersione. I descrittori traducono in misure numeriche alcuni degli indicatori osservabili discussi nel Capitolo~1; il loro significato dipende tuttavia dal contesto e nessuno di essi, considerato isolatamente, permette di stabilire con certezza la presenza di una crisi.
+
+\paragraph{Intervallo di movimento.}
+Sia $\mathbf{c}_t$ il centroide della silhouette all'istante $t$. Il \textit{movement range} misura la massima distanza fra due posizioni registrate nella finestra temporale:
+
+\begin{equation}
+    M
+    =
+    \max_{i,j\in\mathcal{T}}
+    \left\lVert
+        \mathbf{c}_i-\mathbf{c}_j
+    \right\rVert_2.
+\end{equation}
+
+Un soggetto che nuota lungo la vasca tende a coprire uno spazio maggiore e presenta quindi, in generale, un valore di $M$ più elevato. Un bagnante che lotta per mantenersi in superficie o affonda quasi sul posto può invece produrre un intervallo più ridotto. Anche il mantenimento volontario della posizione verticale, tuttavia, è caratterizzato da uno spostamento limitato: il descrittore non può dunque essere interpretato mediante una singola soglia.
+
+\paragraph{Prodotto delle velocità.}
+La velocità del centroide può essere stimata come $\mathbf{v}_t=(\mathbf{c}_t-\mathbf{c}_{t-1})/\Delta t$. Indicando con $\theta_t\in[0,\pi]$ l'angolo compreso tra $\mathbf{v}_{t-1}$ e $\mathbf{v}_t$, lo \textit{speed product} è definito come
+
+\begin{equation}
+    S_t
+    =
+    \left\lVert\mathbf{v}_{t-1}\right\rVert_2
+    \left\lVert\mathbf{v}_t\right\rVert_2
+    \cos\left(\frac{\theta_t}{2}\right).
+\end{equation}
+
+Il prodotto delle norme assume valori maggiori in presenza di un movimento rapido e persistente. Il termine angolare riduce invece il contributo quando la direzione cambia bruscamente; la divisione per due mantiene il coseno non negativo nell'intervallo considerato. La misura combina pertanto intensità e coerenza direzionale del movimento, penalizzando le traiettorie maggiormente irregolari.
+
+\paragraph{Variazione della postura.}
+L'orientamento del bagnante viene approssimato dall'angolo $\vartheta_t$ formato dall'asse principale dell'ellisse equivalente con l'asse orizzontale dell'immagine. Posti
+
+\begin{equation}
+    \vartheta_{\min}=\min_{t\in\mathcal{T}}\vartheta_t,
+    \qquad
+    \vartheta_{\max}=\max_{t\in\mathcal{T}}\vartheta_t,
+\end{equation}
+
+la \textit{posture variation} corrisponde all'ampiezza dell'intervallo osservato:
+
+\begin{equation}
+    P
+    =
+    \vartheta_{\max}-\vartheta_{\min}.
+\end{equation}
+
+Movimenti ripetitivi degli arti e variazioni della porzione di corpo visibile possono modificare continuamente l'ellisse stimata, facendo aumentare $P$. La misura descrive quindi la variazione dell'orientamento nella finestra e non, presa singolarmente, la verticalità del soggetto.
+
+\paragraph{Variazione dell'attività.}
+Per ogni istante si considera il rapporto fra l'area dell'ellisse equivalente e l'area effettiva della silhouette:
+
+\begin{equation}
+    r_t
+    =
+    \frac{A_{\mathrm{ellisse},t}}
+         {A_{\mathrm{silhouette},t}}.
+\end{equation}
+
+La \textit{activity variation} è la differenza fra il valore massimo e quello minimo del rapporto nella finestra temporale:
+
+\begin{equation}
+    A
+    =
+    \max_{t\in\mathcal{T}} r_t
+    -
+    \min_{t\in\mathcal{T}} r_t.
+\end{equation}
+
+L'estensione e la contrazione degli arti modificano la relazione tra la forma reale e la sua approssimazione ellittica. Una variazione elevata può quindi essere associata a un'attività intensa o irregolare, ma può derivare anche da normali movimenti natatori o da imprecisioni nella segmentazione.
+
+\paragraph{Variazione della dimensione.}
+Siano $s_{\max}$, $s_{\min}$ e $\bar{s}$ rispettivamente l'area massima, minima e media della silhouette nella finestra. La \textit{size variation} normalizza l'escursione dell'area rispetto alla dimensione media:
+
+\begin{equation}
+    Z
+    =
+    \frac{s_{\max}-s_{\min}}{\bar{s}}.
+\end{equation}
+
+La normalizzazione rende confrontabili, almeno in prima approssimazione, soggetti che occupano porzioni diverse dell'immagine. $Z$ può crescere quando gli arti vengono estesi e contratti, quando il corpo entra ed esce parzialmente dall'acqua o quando le perturbazioni della superficie frammentano la silhouette rilevata.
+
+\paragraph{Indice di sommersione.}
+DEWS utilizza infine la saturazione cromatica come indicazione indiretta della profondità apparente del soggetto. Sia $\bar{q}_t$ la saturazione media della silhouette all'istante corrente e sia $q_{\min}$ il minimo valore medio registrato dall'inizio della traccia. Il \textit{submersion index} è definito da
+
+\begin{equation}
+    U_t
+    =
+    \bar{q}_t-q_{\min}.
+\end{equation}
+
+Secondo il modello adottato dagli autori, un corpo osservato attraverso uno strato d'acqua maggiore tende ad assumere una dominante più blu e una saturazione più elevata. Un valore alto di $U_t$ suggerisce quindi una condizione più sommersa rispetto al momento in cui il soggetto è apparso meno immerso. La misura dipende però dall'illuminazione, dal colore dell'acqua e dalla qualità della segmentazione \cite{Eng2008DEWS}.
+
+%TODO: [FIGURA] QUI -- Rappresentazione dei sei descrittori su una traccia, con centroide, ellisse equivalente, variazione dell'area e saturazione.
+
+I valori assunti dai sei descrittori possono sovrapporsi significativamente tra attività differenti. Ad esempio, sia una crisi sia il mantenimento volontario della posizione verticale possono produrre uno spostamento ridotto, mentre un nuoto vigoroso può generare notevoli variazioni della silhouette. Proprio questa sovrapposizione motiva l'impiego di un classificatore capace di combinare le caratteristiche e di un successivo modello temporale.
+
+\subsection{Classificazione del comportamento}
+
+DEWS riconduce il comportamento osservato a tre classi: \textit{water crisis}, \textit{treading} e \textit{swimming}. La prima riunisce le situazioni che devono condurre a un allarme, mentre le altre due rappresentano rispettivamente il mantenimento volontario della posizione in acqua e le normali attività natatorie. I sei descrittori vengono inizialmente combinati mediante un \textit{Reduced Model}, ossia un classificatore che costruisce una base polinomiale ridotta e ne stima i coefficienti attraverso un problema ai minimi quadrati. In questo modo è possibile modellare relazioni non lineari tra caratteristiche che, considerate separatamente, non risultano sufficientemente discriminanti \cite{Eng2008DEWS}.
+
+L'uscita istantanea del classificatore alimenta poi tre \textit{Hidden Markov Model}, uno per ciascun comportamento. Gli HMM valutano la sequenza recente delle osservazioni e rappresentano la persistenza degli stati e le transizioni tipiche nel tempo. La decisione non determina immediatamente l'attivazione dell'allarme: quando il modello associato alla crisi risulta il più probabile, un contatore viene incrementato; in caso contrario viene decrementato senza assumere mai valori negativi. Soltanto un'evidenza sufficientemente persistente conduce prima a una condizione di attenzione e poi allo stato di allarme. Quest'ultimo passaggio riduce la sensibilità a classificazioni isolate e completa la terza fase della \textit{pipeline} \cite{Eng2008DEWS}.
+
+\section{Il modello You Only Look Once}
+
+L'obiettivo dell'\textit{object detection} è individuare le istanze degli oggetti di interesse presenti in un'immagine, determinandone contemporaneamente la classe e la posizione. Il risultato non è quindi una sola etichetta riferita all'intero fotogramma, ma un insieme di istanze, ciascuna descritta da una classe e da una regione spaziale, generalmente rappresentata mediante una \textit{bounding box}.
+
+Gli approcci tradizionali a più stadi separano la generazione delle regioni candidate dalla loro classificazione. YOLO affronta invece la rilevazione come un unico problema di regressione, mappando direttamente i pixel dell'immagine nelle coordinate delle regioni e nelle rispettive probabilità di classe. L'intera immagine viene elaborata una sola volta da una rete neurale, da cui l'espressione \textit{You Only Look Once}. Questa impostazione \textit{single-stage} consente al modello di utilizzare il contesto globale della scena e, soprattutto, evita di eseguire ripetutamente un classificatore su un grande numero di regioni proposte \cite{Redmon2016YOLO}.
+
+\subsection{Rappresentazione delle predizioni}
+
+Nella formulazione originaria, l'immagine viene suddivisa in una griglia di $S\times S$ celle. La cella che contiene il centro di un oggetto è responsabile della sua predizione. Ogni cella produce $B$ \textit{bounding box}; per ciascuna vengono stimate le coordinate del centro $(x,y)$, la larghezza $w$, l'altezza $h$ e un valore di confidenza $C$. Le coordinate del centro sono espresse relativamente ai limiti della cella, mentre larghezza e altezza sono normalizzate rispetto alle dimensioni dell'immagine \cite{Redmon2016YOLO}.
+
+La confidenza rappresenta congiuntamente la probabilità che la regione contenga un oggetto e la qualità della sua localizzazione:
+
+\begin{equation}
+    C
+    =
+    \Pr(\mathrm{Object})
+    \operatorname{IoU}(B_{\mathrm{pred}},B_{\mathrm{gt}}),
+\end{equation}
+
+dove $B_{\mathrm{pred}}$ e $B_{\mathrm{gt}}$ indicano rispettivamente la regione predetta e quella annotata, mentre l'\textit{Intersection over Union} è definita come
+
+\begin{equation}
+    \operatorname{IoU}(B_{\mathrm{pred}},B_{\mathrm{gt}})
+    =
+    \frac{
+        \left|B_{\mathrm{pred}}\cap B_{\mathrm{gt}}\right|
+    }{
+        \left|B_{\mathrm{pred}}\cup B_{\mathrm{gt}}\right|
+    }.
+\end{equation}
+
+La IoU assume valore nullo quando le regioni non si intersecano e raggiunge il valore unitario quando coincidono. A livello di cella, YOLOv1 predice inoltre le probabilità condizionate $\Pr(c\mid\mathrm{Object})$ per ciascuna classe $c$. Durante l'inferenza, il prodotto tra queste probabilità e la confidenza assegna a ogni regione un punteggio specifico per classe. Le predizioni ridondanti vengono successivamente filtrate, mantenendo le regioni più affidabili fra quelle fortemente sovrapposte.
+
+La rete originaria proposta da Redmon et al. è composta da 24 strati convoluzionali seguiti da due strati \emph{fully connected}. Gli strati convoluzionali estraggono progressivamente rappresentazioni dell'immagine, mentre l'uscita finale organizza in un unico tensore tutte le coordinate, le confidenze e le probabilità di classe \cite{Redmon2016YOLO}.
+
+%TODO: [FIGURA] QUI -- Schema della griglia di YOLOv1 con cella responsabile, bounding box, confidence e probabilità di classe.
+
+\subsection{La funzione di loss di YOLO}
+
+L'addestramento richiede una funzione obiettivo che penalizzi simultaneamente errori di localizzazione, di confidenza e di classificazione. Nella formulazione di YOLOv1 tali contributi sono espressi mediante una somma di errori quadratici. Nel seguito, $i$ indicizza le $S^2$ celle della griglia, mentre $j$ identifica uno dei $B$ predittori di regione associati a ciascuna cella. Le grandezze contrassegnate dall'accento circonflesso corrispondono alle predizioni prodotte dalla rete; le omologhe grandezze non accentate rappresentano invece i valori obiettivo. La funzione di loss completa è \cite{Redmon2016YOLO}:
+
+\begin{align}
+    \mathcal{L}_{\mathrm{YOLO}}
+    ={}&
+    \lambda_{\mathrm{coord}}
+    \sum_{i=0}^{S^2}
+    \sum_{j=0}^{B}
+    \mathbb{1}_{ij}^{\mathrm{obj}}
+    \left[
+        (x_i-\hat{x}_i)^2
+        +(y_i-\hat{y}_i)^2
+    \right]
+    \nonumber\\
+    &+
+    \lambda_{\mathrm{coord}}
+    \sum_{i=0}^{S^2}
+    \sum_{j=0}^{B}
+    \mathbb{1}_{ij}^{\mathrm{obj}}
+    \left[
+        \left(\sqrt{w_i}-\sqrt{\hat{w}_i}\right)^2
+        +\left(\sqrt{h_i}-\sqrt{\hat{h}_i}\right)^2
+    \right]
+    \nonumber\\
+    &+
+    \sum_{i=0}^{S^2}
+    \sum_{j=0}^{B}
+    \mathbb{1}_{ij}^{\mathrm{obj}}
+    (C_i-\hat{C}_i)^2
+    \nonumber\\
+    &+
+    \lambda_{\mathrm{noobj}}
+    \sum_{i=0}^{S^2}
+    \sum_{j=0}^{B}
+    \mathbb{1}_{ij}^{\mathrm{noobj}}
+    (C_i-\hat{C}_i)^2
+    \nonumber\\
+    &+
+    \sum_{i=0}^{S^2}
+    \mathbb{1}_{i}^{\mathrm{obj}}
+    \sum_{c\in\mathcal{C}}
+    \left(p_i(c)-\hat{p}_i(c)\right)^2
+    \label{eq:yolov1-loss}
+\end{align}
+
+I simboli $\mathbb{1}$ sono funzioni indicatrici e assumono valore uno quando la condizione specificata dagli indici e dall'apice è verificata, e zero altrimenti. In particolare, $\mathbb{1}_{i}^{\mathrm{obj}}$ vale uno quando la cella $i$ contiene il centro di un oggetto. L'indicatore $\mathbb{1}_{ij}^{\mathrm{obj}}$ vale invece uno quando, oltre a essere presente un oggetto nella cella $i$, il predittore $j$ è quello responsabile della sua localizzazione; durante l'addestramento tale responsabilità è assegnata al predittore la cui regione presenta la IoU più elevata con l'annotazione. Infine, $\mathbb{1}_{ij}^{\mathrm{noobj}}$ vale uno quando il predittore $j$ della cella $i$ non è responsabile della predizione di un oggetto. Quest'ultima condizione può verificarsi anche in una cella contenente un oggetto, poiché uno solo dei $B$ predittori viene designato come responsabile. Le quantità $p_i(c)$ e $\hat{p}_i(c)$ rappresentano, rispettivamente, la probabilità condizionata obiettivo e quella predetta per la classe $c\in\mathcal{C}$.
+
+I cinque termini dell'Equazione~\ref{eq:yolov1-loss} possono essere ricondotti a tre componenti principali.
+
+\paragraph{Errore di localizzazione.}
+I primi due termini penalizzano gli errori nelle coordinate e nelle dimensioni delle regioni responsabili di un oggetto. Il coefficiente $\lambda_{\mathrm{coord}}$ aumenta il peso di questa componente rispetto alle altre; nella configurazione originaria viene posto pari a 5. Per larghezza e altezza non viene confrontato direttamente il valore, ma la sua radice quadrata. In questo modo uno stesso scostamento assoluto assume un peso relativamente maggiore per una regione piccola e minore per una regione grande, riducendo la dipendenza dell'errore dalla scala della \textit{bounding box}.
+
+\paragraph{Errore di confidenza.}
+Il terzo e il quarto termine misurano la differenza tra confidenza predetta e confidenza obiettivo. I due casi sono separati perché la maggior parte delle celle di un'immagine non contiene oggetti: attribuire lo stesso peso a tutte le predizioni negative farebbe dominare il loro contributo e spingerebbe la rete a produrre confidenze prossime a zero. YOLOv1 introduce pertanto $\lambda_{\mathrm{noobj}}=0{,}5$ per ridurre il peso delle regioni prive di un oggetto assegnato. Quando un predittore è responsabile, la confidenza obiettivo incorpora la sovrapposizione con la regione reale; l'errore riflette quindi sia la presenza dell'oggetto sia la qualità della localizzazione.
+
+\paragraph{Errore di classificazione.}
+L'ultimo termine confronta le probabilità condizionate di classe e viene calcolato soltanto nelle celle che contengono un oggetto. Le celle di solo sfondo non contribuiscono quindi all'errore di classificazione. Poiché la classe è associata alla cella e non a ciascuna singola regione, nella formulazione originaria i $B$ predittori della stessa cella condividono il medesimo vettore di probabilità.
+
+La somma quadratica rende l'ottimizzazione unificata e consente di apprendere congiuntamente tutte le componenti della rilevazione, ma non coincide direttamente con la metrica utilizzata per valutare un detector. Gli stessi autori osservano inoltre che il bilanciamento fra localizzazione e classificazione e la gestione degli oggetti piccoli costituiscono limiti della prima formulazione. La loss descritta ha pertanto un valore fondativo per comprendere YOLOv1; le versioni successive della famiglia hanno introdotto architetture e funzioni obiettivo differenti.
+
+\section{Motivazioni della sostituzione del modulo di rilevazione}
+
+Il primo modulo di DEWS affronta esplicitamente le difficoltà dell'ambiente acquatico e mantiene il vantaggio di un procedimento deterministico, nel quale ogni passaggio può essere ricondotto a una regola o a un parametro interpretabile. Questa caratteristica comporta tuttavia una notevole complessità operativa, poiché il metodo richiede una calibrazione specifica rispetto alla scena. Variazioni dell'inquadratura, dell'illuminazione o delle caratteristiche della piscina possono quindi richiedere una nuova regolazione dei parametri \cite{Eng2004Region,Eng2006Robust,Eng2008DEWS}.
+
+Un secondo limite riguarda la separazione delle istanze. Nel metodo originale i bagnanti vengono ricavati come componenti connesse della maschera di \textit{foreground}; quando le silhouette si uniscono, il sistema deve stimare quante persone appartengano al \textit{blob} e valutare iterativamente diverse configurazioni di ellissi. Il procedimento aumenta il costo computazionale e diviene più fragile al crescere dell'affollamento. YOLO produce invece direttamente un insieme di regioni candidate distinte e associa a ciascuna una confidenza. Ciò elimina la necessità di uno stadio esplicito di \textit{blob splitting}, pur senza risolvere in modo assoluto il problema delle occlusioni tra persone \cite{Eng2008DEWS,Redmon2016YOLO}.
+
+La sostituzione trasferisce inoltre parte della complessità dalla progettazione manuale delle regole all'apprendimento dai dati. Attraverso il \textit{fine-tuning}, il modello può apprendere le caratteristiche visive dei bagnanti nelle condizioni rappresentate dal \textit{dataset}, senza richiedere la definizione di un modello cromatico specifico per ogni elemento della scena. L'elaborazione \textit{single-stage} e l'esecuzione efficiente su acceleratori hardware rendono YOLO un candidato adatto a un'applicazione con vincoli temporali stringenti \cite{Redmon2016YOLO}.
+
+Il cambiamento presenta anche alcune contropartite. Un modello appreso è meno direttamente spiegabile del procedimento deterministico e dipende dalla disponibilità di dati numerosi, correttamente annotati e sufficientemente eterogenei. Se le condizioni operative differiscono da quelle osservate durante l'addestramento, la capacità di generalizzazione può ridursi. La costruzione del \textit{dataset}, il controllo delle annotazioni e la configurazione del \textit{fine-tuning} diventano quindi parti essenziali del sistema, anziché attività accessorie.
+
+%TODO: [TABELLA] QUI -- Confronto qualitativo tra il rilevatore originale di DEWS e YOLO: calibrazione, output, affollamento, costo computazionale, spiegabilità e dipendenza dai dati.
+
+In sintesi, l'impiego di YOLO mira a ottenere un modulo di rilevazione più facilmente adattabile, capace di gestire direttamente più istanze e compatibile con i requisiti di elaborazione in tempo reale. Il vantaggio atteso non consiste nell'eliminazione di ogni difficoltà, ma in una diversa distribuzione della complessità: dalle soglie e dalle procedure deterministiche specifiche della scena alla qualità dei dati e al processo di addestramento del modello. I capitoli successivi descriveranno come tale passaggio sia stato realizzato e ne valuteranno sperimentalmente le conseguenze.
