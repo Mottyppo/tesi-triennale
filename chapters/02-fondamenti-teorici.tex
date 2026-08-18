@@ -6,9 +6,24 @@ Il sistema sviluppato nel presente lavoro nasce dalla revisione di un'architettu
 
 DEWS è un sistema di videosorveglianza progettato per individuare precocemente comportamenti compatibili con una situazione di crisi in acqua. L'architettura impiega una rete di telecamere installate in posizione sopraelevata intorno alla piscina. Ciascuna telecamera osserva una regione locale della vasca, parzialmente sovrapposta a quelle adiacenti, mentre l'unione delle inquadrature assicura la copertura dell'intera area di interesse. Questa configurazione permette di analizzare il comportamento del soggetto durante le fasi iniziali della crisi e, compatibilmente con le condizioni di visibilità attraverso l'acqua, di continuare a osservarlo anche durante una sommersione. L'efficacia della rilevazione in questa seconda condizione dipende tuttavia dai riflessi, dall'agitazione della superficie, dalla trasparenza dell'acqua e dalla profondità del soggetto \cite{Eng2008DEWS}.
 
-La \textit{pipeline} può essere ricondotta a tre fasi principali. La prima individua i bagnanti nell'immagine, separa le \textit{silhouette} che risultano connesse e associa nel tempo le osservazioni appartenenti allo stesso soggetto. La seconda trasforma la storia di ciascuna traccia in un insieme compatto di descrittori geometrici, cinematici e cromatici. La terza combina tali descrittori e ne analizza l'evoluzione temporale per distinguere il nuoto ordinario, il mantenimento volontario della posizione verticale e una potenziale situazione di crisi \cite{Eng2008DEWS}.
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        phase/.style={draw, rounded corners, align=center, minimum height=1.65cm, text width=3.25cm, inner sep=6pt, font=\small},
+        arrow/.style={->, >=stealth, thick}
+        ]
+        \node[phase, fill=gray!12] (detection) at (0,0) {Rilevazione, separazione e tracciamento dei bagnanti};
+        \node[phase, fill=blue!12] (description) at (5.2,0) {Estrazione dei descrittori comportamentali};
+        \node[phase, fill=gray!12] (classification) at (10.4,0) {Classificazione e generazione dell'allarme};
 
-%TODO: [FIGURA] QUI -- Schema delle tre fasi della pipeline DEWS e delle informazioni scambiate tra rilevazione, descrizione e classificazione.
+        \draw[arrow] (detection) -- node[above, font=\scriptsize] {tracce} (description);
+        \draw[arrow] (description) -- node[above, font=\scriptsize] {descrittori} (classification);
+    \end{tikzpicture}
+    \caption[Fasi principali della \textit{pipeline} DEWS]{Schema delle tre fasi principali della \textit{pipeline} DEWS}
+    \label{fig:pipeline-dews}
+\end{figure}
+
+La \textit{pipeline} può essere ricondotta a tre fasi principali. La prima individua i bagnanti nell'immagine, separa le \textit{silhouette} che risultano connesse e associa nel tempo le osservazioni appartenenti allo stesso soggetto generando delle tracce. La seconda trasforma la storia di ciascuna traccia in un insieme compatto di descrittori geometrici, cinematici e cromatici. La terza combina tali descrittori e ne analizza l'evoluzione temporale per distinguere il nuoto ordinario, il mantenimento volontario della posizione verticale e una potenziale situazione di crisi \cite{Eng2008DEWS}.
 
 \subsection{Rilevazione, separazione e tracciamento dei bagnanti}
 
@@ -27,6 +42,13 @@ Quando più persone si trovano a contatto nell'immagine, le rispettive \textit{s
 \end{equation}
 
 Le quantità $A_{\gamma_i}^{bg}$ e $A_{\gamma_i}^{fg}$ rappresentano rispettivamente il numero di \textit{pixel} di \textit{background} e di \textit{foreground} racchiusi dall'ellisse $\gamma_i$, mentre $A_{\gamma_i}^{ov}$ indica i \textit{pixel} di \textit{foreground} appartenenti alla zona di sovrapposizione con le altre ellissi. Il rapporto diminuisce quando le ellissi coprono una porzione maggiore della \textit{silhouette} e aumenta quando includono sfondo o si sovrappongono eccessivamente. Le configurazioni vengono raffinate a partire dalla distribuzione dei \textit{pixel} di \textit{foreground}; ripetendo il procedimento per differenti valori di $k$, viene selezionato come numero più plausibile di bagnanti quello associato al minimo punteggio complessivo di validità, nel quale viene considerata anche la continuità con il fotogramma precedente. Le osservazioni ottenute vengono infine associate alle tracce esistenti sulla base della posizione prevista e della compatibilità spaziale. Il tracciamento non serve soltanto a mantenere l'identità del soggetto, ma rende disponibile la storia temporale necessaria alla fase successiva \cite{Eng2008DEWS}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.62\textwidth]{figures/dews-blob-splitting.png}
+    \caption[Processo di \textit{blob splitting} in DEWS]{Processo di \textit{blob splitting} adottato in DEWS: inizializzazione, adattamento delle ellissi e risultato finale. Tratto da \cite[Fig.~8]{Eng2008DEWS}}
+    \label{fig:dews-blob-splitting}
+\end{figure}
 
 \subsection{Estrazione dei descrittori comportamentali}
 
@@ -132,9 +154,14 @@ DEWS utilizza infine la saturazione cromatica come indicazione indiretta della p
 
 Secondo il modello adottato dagli autori, un corpo osservato attraverso uno strato d'acqua maggiore tende ad assumere una dominante più blu e una saturazione più elevata. Un valore alto di $U_t$ suggerisce quindi una condizione più sommersa rispetto al momento in cui il soggetto è apparso meno immerso. La misura dipende però dall'illuminazione, dal colore dell'acqua e dalla qualità della segmentazione \cite{Eng2008DEWS}.
 
-%TODO: [FIGURA] QUI -- Rappresentazione dei sei descrittori su una traccia, con centroide, ellisse equivalente, variazione dell'area e saturazione.
-
 I valori assunti dai sei descrittori possono sovrapporsi significativamente tra attività differenti. Ad esempio, sia una crisi sia il mantenimento volontario della posizione verticale possono produrre uno spostamento ridotto, mentre un nuoto vigoroso può generare notevoli variazioni della \textit{silhouette}. Proprio questa sovrapposizione motiva l'impiego di un classificatore capace di combinare le caratteristiche e di un successivo modello temporale \cite{Eng2008DEWS}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.63\textwidth]{figures/dews-descrittori.png}
+    \caption[Relazioni tra i descrittori comportamentali di DEWS]{Relazioni tra i sei descrittori comportamentali per le classi \textit{swimming}, \textit{treading} e \textit{water crisis}. I diagrammi evidenziano la sovrapposizione tra le distribuzioni delle diverse attività. Tratto da \cite[Fig.~6]{Eng2008DEWS}}
+    \label{fig:dews-descrittori}
+\end{figure}
 
 \subsection{Classificazione del comportamento}
 
@@ -142,11 +169,20 @@ DEWS riconduce il comportamento osservato a tre classi: \textit{water crisis}, \
 
 L'uscita istantanea del classificatore alimenta poi tre \textit{Hidden Markov Model}, uno per ciascun comportamento. Gli HMM valutano la sequenza recente delle osservazioni e rappresentano la persistenza degli stati e le transizioni tipiche nel tempo. La decisione non determina immediatamente l'attivazione dell'allarme: quando il modello associato alla crisi risulta il più probabile, un contatore viene incrementato; in caso contrario viene decrementato senza assumere mai valori negativi. Soltanto un'evidenza sufficientemente persistente conduce prima a una condizione di attenzione e poi allo stato di allarme. Quest'ultimo passaggio riduce la sensibilità a classificazioni isolate e completa la terza fase della \textit{pipeline} \cite{Eng2008DEWS}.
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figures/dews-hmm.png}
+    \caption[Modelli HMM per la classificazione del comportamento]{Modelli HMM impiegati da DEWS per descrivere le transizioni di stato: (a) crisi in acqua, (b) nuoto e (c) mantenimento volontario della posizione. Tratto da \cite[Fig.~7]{Eng2008DEWS}}
+    \label{fig:dews-hmm}
+\end{figure}
+
 \section{Il modello You Only Look Once}
 
 L'obiettivo dell'\textit{object detection} è individuare le istanze degli oggetti di interesse presenti in un'immagine, determinandone contemporaneamente la classe e la posizione. Il risultato non è quindi una sola etichetta riferita all'intero fotogramma, ma un insieme di istanze, ciascuna descritta da una classe e da una regione spaziale, generalmente rappresentata mediante una \textit{bounding box}.
 
 Gli approcci tradizionali a più stadi separano la generazione delle regioni candidate dalla loro classificazione. YOLO affronta invece la rilevazione come un unico problema di regressione, mappando direttamente i \textit{pixel} dell'immagine nelle coordinate delle regioni e nelle rispettive probabilità di classe. L'intera immagine viene elaborata una sola volta da una rete neurale, da cui l'espressione \textit{You Only Look Once}. Questa impostazione \textit{single-stage} consente al modello di utilizzare il contesto globale della scena e, soprattutto, evita di eseguire ripetutamente un classificatore su un grande numero di regioni proposte \cite{Redmon2016YOLO}.
+
+Nel presente lavoro viene adottata una variante di YOLO per la segmentazione di istanza, indicata nel seguito come YOLO-SEG. Oltre a localizzare ciascun bagnante, il modello associa all'istanza una maschera che ne delimita la \textit{silhouette} a livello di \textit{pixel}. Tale rappresentazione è particolarmente adatta all'integrazione con DEWS, poiché rende direttamente disponibile la forma del soggetto necessaria al calcolo dei descrittori comportamentali. La formulazione di YOLOv1 descritta di seguito mantiene comunque un valore fondativo per comprendere il funzionamento generale della famiglia di modelli.
 
 \subsection{Rappresentazione delle predizioni}
 
@@ -173,11 +209,23 @@ dove $B_{\mathrm{pred}}$ e $B_{\mathrm{gt}}$ indicano rispettivamente la regione
     }.
 \end{equation}
 
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.62\textwidth]{figures/yolov1-modello.png}
+    \caption[Rappresentazione delle predizioni di YOLOv1]{Rappresentazione delle predizioni di YOLOv1: griglia di ingresso, regioni con i relativi valori di confidenza, probabilità di classe e rilevazioni finali. Tratto da \cite[Fig.~2]{Redmon2016YOLO}}
+    \label{fig:yolov1-modello}
+\end{figure}
+
 La IoU assume valore nullo quando le regioni non si intersecano e raggiunge il valore unitario quando coincidono. A livello di cella, YOLOv1 predice inoltre le probabilità condizionate $\Pr(c\mid\mathrm{Object})$ per ciascuna classe $c$. Durante l'inferenza, il prodotto tra queste probabilità e la confidenza assegna a ogni regione un punteggio specifico per classe. Le predizioni ridondanti vengono successivamente filtrate, mantenendo le regioni più affidabili fra quelle fortemente sovrapposte \cite{Redmon2016YOLO}.
 
 La rete originaria proposta da Redmon \textit{et al.} è composta da 24 strati convoluzionali seguiti da due strati \emph{fully connected}. Gli strati convoluzionali estraggono progressivamente rappresentazioni dell'immagine, mentre l'uscita finale organizza in un unico tensore tutte le coordinate, le confidenze e le probabilità di classe \cite{Redmon2016YOLO}.
 
-%TODO: [FIGURA] QUI -- Schema della griglia di YOLOv1 con cella responsabile, bounding box, confidence e probabilità di classe.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figures/yolov1-architettura.png}
+    \caption[Architettura di YOLOv1]{Architettura originaria di YOLOv1, composta da 24 strati convoluzionali e due strati \textit{fully connected}. Tratto da \cite[Fig.~3]{Redmon2016YOLO}}
+    \label{fig:yolov1-architettura}
+\end{figure}
 
 \subsection{La funzione di loss di YOLO}
 
@@ -247,10 +295,33 @@ Il primo modulo di DEWS affronta esplicitamente le difficoltà dell'ambiente acq
 
 Un secondo limite riguarda la separazione delle istanze. Nel metodo originale i bagnanti vengono ricavati come componenti connesse della maschera di \textit{foreground}; quando le \textit{silhouette} si uniscono, il sistema deve stimare quante persone appartengano al \textit{blob} e valutare iterativamente diverse configurazioni di ellissi. Il procedimento aumenta il costo computazionale e diviene più fragile al crescere dell'affollamento. YOLO produce invece direttamente un insieme di regioni candidate distinte e associa a ciascuna una confidenza. Ciò elimina la necessità di uno stadio esplicito di \textit{blob splitting}, pur senza risolvere in modo assoluto il problema delle occlusioni tra persone \cite{Eng2008DEWS,Redmon2016YOLO}.
 
-La sostituzione trasferisce inoltre parte della complessità dalla progettazione manuale delle regole all'apprendimento dai dati. Attraverso il \textit{fine-tuning}, il modello può apprendere le caratteristiche visive dei bagnanti nelle condizioni rappresentate dal \textit{dataset}, senza richiedere la definizione di un modello cromatico specifico per ogni elemento della scena. L'elaborazione \textit{single-stage} e l'esecuzione efficiente su acceleratori \textit{hardware} rendono YOLO un candidato adatto a un'applicazione con vincoli temporali stringenti \cite{Redmon2016YOLO}.
+La sostituzione trasferisce inoltre parte della complessità dalla progettazione manuale delle regole all'apprendimento dai dati. Attraverso il \textit{fine-tuning}, il modello può apprendere le caratteristiche visive dei bagnanti nelle condizioni rappresentate dal \textit{dataset}, senza richiedere la definizione di un modello cromatico specifico per ogni elemento della scena. L'elaborazione \textit{single-stage} e l'esecuzione efficiente su acceleratori \textit{hardware} rendono YOLO un candidato adatto a un'applicazione con vincoli temporali stringenti (esecuzione in \emph{real-time}) \cite{Redmon2016YOLO}.
 
 Il cambiamento presenta anche alcune contropartite. Un modello appreso è meno direttamente spiegabile del procedimento deterministico e dipende dalla disponibilità di dati numerosi, correttamente annotati e sufficientemente eterogenei. Se le condizioni operative differiscono da quelle osservate durante l'addestramento, la capacità di generalizzazione può ridursi. La costruzione del \textit{dataset}, il controllo delle annotazioni e la configurazione del \textit{fine-tuning} diventano quindi parti essenziali del sistema, anziché attività accessorie.
 
-%TODO: [TABELLA] QUI -- Confronto qualitativo tra il rilevatore originale di DEWS e YOLO: calibrazione, output, affollamento, costo computazionale, spiegabilità e dipendenza dai dati.
+\begin{table}[htbp]
+    \centering
+    \caption[Confronto tra il rilevatore originale di DEWS e YOLO]{Confronto qualitativo tra il modulo di rilevazione originale di DEWS e YOLO}
+    \label{tab:confronto-dews-yolo}
+    \footnotesize
+    \renewcommand{\arraystretch}{1.20}
+    \begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}m{2.6cm}||>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+        \hline
+        Caratteristica & Modulo originale DEWS & YOLO \\
+        \hline\hline
+        Calibrazione & Richiede la regolazione di modelli, soglie e parametri in funzione della scena osservata. & Trasferisce gran parte della configurazione al processo di addestramento e di \textit{fine-tuning}. \\
+        \hline
+        Informazioni prodotte & Genera maschere di \textit{foreground}, componenti connesse e modelli ellittici dei soggetti. & Restituisce direttamente regioni o maschere, classi e valori di confidenza. \\
+        \hline
+        Gestione dell'affollamento & Separa esplicitamente le \textit{silhouette} connesse mediante il processo iterativo di \textit{blob splitting}. & Predice più istanze in un'unica elaborazione, pur rimanendo sensibile alle occlusioni. \\
+        \hline
+        Costo computazionale & Comprende più operazioni deterministiche e una ricerca iterativa delle configurazioni di ellissi. & Esegue la rilevazione mediante una singola valutazione della rete e beneficia dell'impiego di acceleratori \textit{hardware}. \\
+        \hline
+        Spiegabilità & Ogni passaggio dipende da regole e parametri direttamente interpretabili. & Le decisioni dipendono da rappresentazioni apprese e risultano meno direttamente interpretabili. \\
+        \hline
+        Dipendenza dai dati & Riduce la necessità di dati annotati, ma richiede una configurazione accurata rispetto alla scena. & Richiede un insieme di addestramento annotato, rappresentativo ed eterogeneo. \\
+        \hline
+    \end{tabularx}
+\end{table}
 
 In sintesi, l'impiego di YOLO mira a ottenere un modulo di rilevazione più facilmente adattabile, capace di gestire direttamente più istanze e compatibile con i requisiti di elaborazione in tempo reale. Il vantaggio atteso non consiste nell'eliminazione di ogni difficoltà, ma in una diversa distribuzione della complessità: dalle soglie e dalle procedure deterministiche specifiche della scena alla qualità dei dati e al processo di addestramento del modello. I capitoli successivi descriveranno come tale passaggio sia stato realizzato e ne valuteranno sperimentalmente le conseguenze.
