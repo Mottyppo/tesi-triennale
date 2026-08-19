@@ -1,4 +1,118 @@
 \chapter{Realizzazione del Dataset}
+% TODO: media + final check
+L'impiego di un modello appreso per la rilevazione dei bagnanti trasferisce una parte rilevante della complessità del sistema alla costruzione dei dati di addestramento. Il \textit{dataset} deve infatti rappresentare non soltanto l'aspetto dei soggetti, ma anche le condizioni che rendono difficile la loro individuazione: riflessi, schizzi, immersioni parziali, occlusioni e presenza contemporanea di più persone. Inoltre, poiché la prima fase della \textit{pipeline} deve fornire sia la posizione sia la \textit{silhouette} dei bagnanti, le annotazioni devono supportare l'addestramento e la sperimentazione sia nell'ambito della segmentazione di istanza sia in quello dell'\textit{object detection}.
 
-%TODO: scrivere tutto
-Testo segnaposto.
+La disponibilità di raccolte pubbliche dedicate all'ambiente acquatico costituisce un importante punto di partenza, ma non elimina la necessità di acquisire materiale specifico per il problema considerato. Ad esempio, il \textit{Water Behavior Dataset} proposto da Hasan \textit{et al.} comprende riprese sopra e sotto la superficie e distingue tre attività, ossia \textit{swimming}, \textit{drowning} e \textit{idle}; ogni filmato ritrae tuttavia un solo soggetto ed è organizzato principalmente per il riconoscimento dell'attività svolta \cite{Hasan2021WaterDataset}. Il presente lavoro richiede invece annotazioni a livello di istanza in scene con più persone, osservate da differenti inquadrature sopraelevate. Per questa ragione è stato realizzato un nuovo corpus video, dal quale sono stati derivati due \textit{dataset}: il primo per YOLO-SEG, basato su maschere di segmentazione, e il secondo per YOLO Detection, ottenuto convertendo le stesse annotazioni in \textit{bounding box}.
+
+Il capitolo descrive dapprima la preparazione e lo svolgimento delle registrazioni, quindi le operazioni di \textit{pre-processing} e il processo di annotazione. Vengono successivamente presentati i controlli di qualità, il criterio di suddivisione nei tre insiemi di \textit{training}, \textit{validation} e \textit{test}, la conversione dal formato di segmentazione a quello di rilevazione e, infine, i principali vantaggi e limiti della raccolta realizzata.
+
+\section{Acquisizione del materiale video}
+
+\subsection{Preparazione delle registrazioni}
+
+Prima dell'acquisizione è stato approfondito il fenomeno dell'annegamento, con particolare attenzione alle manifestazioni visive descritte nel Capitolo~1. Questa fase era necessaria per definire le situazioni da riprodurre e per spiegare ai figuranti i movimenti richiesti durante le simulazioni. Parallelamente è stata avviata la ricerca di una struttura che disponesse di una piscina adatta, di punti di installazione sopraelevati e delle autorizzazioni necessarie allo svolgimento delle riprese.
+
+La ricerca è iniziata il 2 gennaio 2026 con un primo contatto con il Centro Natatorio di Mompiano. Il progetto è stato successivamente presentato al direttore generale di San Filippo S.p.A., società incaricata della gestione dei centri sportivi del Comune di Brescia. La procedura ha richiesto la predisposizione di documentazione destinata ai \textit{Data Protection Officer} di San Filippo S.p.A., della Federazione Italiana Nuoto e del Comune di Brescia. L'attenzione riservata alle autorizzazioni deriva dalla natura delle registrazioni, nelle quali i partecipanti costituiscono soggetti identificabili e le immagini devono pertanto essere trattate nel rispetto dei principi applicabili alla protezione dei dati personali \cite{EU2016GDPR}.
+
+Il riscontro favorevole dei primi due enti non è stato accompagnato dall'autorizzazione del Comune; si è quindi reso necessario individuare un'altra sede. La disponibilità è stata ottenuta dal Polo Natatorio San Pietro di Castiglione delle Stiviere e dal Parco Acquatico Cavour di Valeggio sul Mincio. Dopo l'analisi delle planimetrie, dei possibili punti di installazione delle telecamere e delle disponibilità dei figuranti, è stato scelto il primo impianto. Il giorno precedente alle registrazioni sono state effettuate prove preliminari per stabilire la posizione dei dispositivi e regolare l'esposizione e il bilanciamento del bianco.
+
+\subsection{Configurazione e contenuto delle riprese}
+
+Le registrazioni sono state svolte la mattina del 31 maggio 2026 presso la piscina esterna da 50 metri del Polo Natatorio San Pietro. La vasca comprende due zone con profondità rispettivamente pari a 1{,}50 e 2{,}20 metri. Hanno partecipato undici volontari dotati di buone capacità natatorie, così da poter rappresentare sia attività ordinarie sia le situazioni simulate previste per la raccolta.
+
+Per l'acquisizione sono state impiegate sei ICEFOX i8 Action Camera 4K, configurate alla risoluzione di $1920\times1080$ \textit{pixel} e a 30 \textit{frame} al secondo. Le telecamere sono state collocate in corrispondenza dei piloni della struttura adiacente alla piscina. La disposizione ha prodotto sei inquadrature sopraelevate e differenti della vasca, coerenti con la configurazione multicamera prevista dal sistema di riferimento.
+
+Il materiale comprende normali situazioni di utilizzo della piscina, quali il nuoto, il gioco, anche con un pallone, e i tuffi. A queste attività sono state affiancate simulazioni di annegamento attivo e passivo. Le azioni non costituiscono classi del \textit{dataset} descritto in questo capitolo: la loro funzione è introdurre varietà visiva nelle posture, nei movimenti, nel grado di immersione e nelle interazioni tra i soggetti. L'annotazione riguarda infatti esclusivamente la presenza delle persone e non il loro stato comportamentale.
+
+%TODO: [FIGURA] QUI: configurazione dell'impianto e posizione delle sei telecamere, con un esempio delle differenti inquadrature ottenute.
+
+\section{Pre-processing dei filmati}
+
+Le registrazioni grezze comprendevano, oltre alle sequenze destinate al \textit{dataset}, filmati utilizzati per definire l'inquadratura e riprese della sola piscina vuota. La prima operazione è consistita quindi nella selezione del materiale utile, escludendo i video realizzati unicamente per la configurazione delle telecamere o privi di soggetti per l'intera durata.
+
+I filmati selezionati sono stati suddivisi in \textit{clip} uniformi di 60 secondi. Alla frequenza originale di acquisizione, ogni \textit{clip} conteneva pertanto 1\,800 fotogrammi. La durata costante ha semplificato le elaborazioni successive, consentendo di trattare unità omogenee e di mantenere l'origine temporale di ciascun gruppo di immagini.
+
+Il posizionamento fisico delle \textit{action camera} aveva prodotto filmati ruotati; a ogni \textit{clip} è stata quindi applicata una rotazione di $180^{\circ}$. Successivamente la frequenza è stata ridotta da 30 a 10 fotogrammi al secondo, mantenendo la risoluzione di $1920\times1080$ \textit{pixel} e impostazioni di esportazione coerenti con la qualità e il fattore di compressione del materiale originale. Dopo il \textit{downsampling}, una \textit{clip} di 60 secondi risulta composta nominalmente da 600 immagini. La riduzione limita il costo di annotazione e addestramento, conservando comunque una frequenza temporale sufficiente a rappresentare l'evoluzione visiva delle azioni considerate.
+
+È stata inoltre applicata una trasformazione geometrica per correggere la distorsione introdotta dalla curvatura della lente. Tale operazione è particolarmente importante nelle zone periferiche dell'immagine, nelle quali la distorsione delle linee e delle proporzioni dei soggetti risulta più evidente. Infine, le \textit{clip} sono state rinominate mediante identificativi numerici progressivi, ottenendo una nomenclatura uniforme per le successive conversioni e revisioni.
+
+%TODO: [FIGURA] QUI: confronto tra un fotogramma originale e il risultato del pre-processing, evidenziando rotazione e correzione della distorsione della lente.
+
+Al termine delle operazioni di selezione e dei controlli svolti durante l'annotazione sono rimaste 172 \textit{clip}. Il \textit{dataset} finale comprende 91\,410 immagini nelle quali è visibile almeno una persona associata a un'annotazione. I fotogrammi contenenti esclusivamente lo sfondo non sono stati inclusi nell'insieme finale.
+
+\section{Realizzazione del dataset YOLO-SEG}
+
+\subsection{Generazione automatica delle maschere}
+
+La segmentazione manuale di oltre novantamila immagini avrebbe richiesto un'attività difficilmente sostenibile. È stato pertanto adottato un procedimento semiautomatico, nel quale un modello ha prodotto le annotazioni iniziali e l'intervento umano si è concentrato sulla verifica e sulla correzione degli errori.
+
+Le \textit{clip} elaborate sono state trasferite su una macchina virtuale fornita da RunPod\footnote{RunPod è una piattaforma \textit{cloud} che fornisce accesso su richiesta a risorse GPU e CPU per applicazioni di intelligenza artificiale e altri carichi computazionali intensivi \cite{RunPodDocs}.} ed equipaggiata con una GPU NVIDIA RTX 4090 dotata di 24~GB di memoria video. Su tale macchina è stato eseguito SAM 3, un modello basato su architettura \textit{Transformer} per la segmentazione di istanza e il tracciamento di oggetti in immagini e video \cite{Carion2025SAM3}. Nel procedimento adottato, il modello è stato impiegato per generare automaticamente le maschere di segmentazione e propagarle lungo i fotogrammi delle \textit{clip}. Il ricorso alla GPU ha reso possibile elaborare l'intera raccolta senza eseguire manualmente il contorno di ciascuna istanza in ogni immagine.
+
+Le annotazioni prodotte automaticamente sono state successivamente esportate e convertite, mediante uno \textit{script} Python, nel formato CVAT for video~1.1 \cite{CVATFormats}. Questa rappresentazione intermedia è stata scelta per consentire l'importazione delle maschere in CVAT, uno strumento \textit{open source} per l'annotazione e la revisione di immagini e video \cite{CVATSoftware}, e la loro correzione attraverso un'interfaccia dedicata. L'applicazione è stata eseguita localmente all'interno di un contenitore Docker, così da disporre di un ambiente riproducibile per l'ispezione delle sequenze.
+
+%TODO: [FIGURA] QUI: schema del processo di annotazione, dalla clip pre-processata alla maschera generata da SAM 3, alla revisione in CVAT e all'esportazione in formato YOLO Segmentation.
+
+\subsection{Definizione della classe}
+
+Il compito di segmentazione è stato formulato come problema a classe singola. L'unica classe, denominata \texttt{person}, comprende tutte le persone visibili nell'immagine, indipendentemente dalla loro posizione dentro o fuori dalla vasca e dall'attività svolta. Ogni soggetto visibile costituisce un'istanza distinta e possiede quindi una propria maschera.
+
+Questa scelta mantiene separata la rilevazione dalla successiva interpretazione del comportamento. L'etichetta non distingue il nuoto, il gioco, il tuffo o le simulazioni di crisi e non codifica il grado di immersione. Il \textit{dataset} fornisce esclusivamente l'informazione spaziale necessaria a individuare le persone e, nella versione di segmentazione, a descriverne la \textit{silhouette}. Le eventuali valutazioni sullo stato del soggetto appartengono alle fasi successive della \textit{pipeline} e non rientrano nel processo di annotazione qui trattato.
+
+\subsection{Revisione e controllo della qualità}
+
+Le maschere generate automaticamente non presentavano una qualità uniforme. Gli errori principali riguardavano segmentazioni parziali, contorni frammentati e associazioni temporali errate tra soggetti vicini. Tutte le \textit{clip} sono state pertanto sottoposte a una prima revisione manuale in CVAT, durante la quale sono state corrette le maschere non aderenti alla persona visibile e le sequenze nelle quali il tracciamento automatico aveva confuso le istanze.
+
+Alcuni filmati presentavano errori troppo estesi per poter essere corretti con un livello di affidabilità adeguato nel tempo disponibile e sono stati esclusi dalla raccolta. Sulle annotazioni rimanenti è stato poi eseguito uno \textit{script} per unire le porzioni disconnesse appartenenti alla stessa maschera mediante un'operazione di chiusura morfologica implementata con OpenCV. La chiusura, ottenuta applicando in successione una dilatazione e un'erosione, permette di colmare piccole interruzioni e di ricomporre regioni che il modello aveva separato pur appartenendo allo stesso soggetto \cite{OpenCVClosing}.
+
+Le annotazioni così elaborate sono state sottoposte a un secondo controllo visivo. La verifica ha considerato la corrispondenza tra la maschera e la persona, la continuità delle regioni, la separazione delle istanze nelle situazioni di contatto e la coerenza lungo fotogrammi consecutivi. Il controllo in due passaggi, unito all'esclusione dei casi più problematici, ha ridotto gli errori più evidenti; non garantisce tuttavia che ogni contorno presenti lo stesso livello di precisione. Come discusso nella Sezione~\ref{sec:dataset-vantaggi-limiti}, il tempo disponibile ha imposto un compromesso tra estensione della raccolta e accuratezza puntuale di tutte le maschere.
+
+%TODO: [FIGURA] QUI: esempi di errori prodotti dall'annotazione automatica e relative correzioni, includendo una maschera parziale, un'identità scambiata e l'effetto della chiusura morfologica.
+
+\subsection{Esportazione nel formato YOLO Segmentation}
+
+Dopo il secondo controllo, le annotazioni sono state convertite nel formato Ultralytics YOLO Segmentation~1.0 \cite{CVATFormats}. A ogni immagine è associato un \textit{file} di testo contenente una riga per ciascuna persona visibile. La riga riporta l'identificativo della classe seguito dalle coordinate normalizzate dei vertici del poligono che approssima il contorno dell'istanza. Poiché il problema comprende la sola classe \texttt{person}, tutte le istanze condividono lo stesso identificativo di classe, mentre rimangono separate attraverso i rispettivi poligoni.
+
+%TODO: [LISTATO] QUI: estratto reale di una riga di annotazione nel formato YOLO Segmentation, mostrando l'identificativo della classe person e le coordinate normalizzate dei vertici del poligono. Utilizzare la stessa immagine e la stessa istanza del listato relativo al formato YOLO Detection.
+
+La rappresentazione ottenuta conserva l'informazione geometrica necessaria a ricostruire una maschera per ogni soggetto. Essa risponde quindi alle esigenze del modulo YOLO-SEG e mantiene la compatibilità con le fasi successive di DEWS, nelle quali la forma segmentata viene utilizzata per ricavare proprietà geometriche e descrittori comportamentali \cite{Eng2008DEWS}.
+
+\section{Suddivisione nei set di training, validation e test}
+
+La forte correlazione temporale tra fotogrammi consecutivi rende inadeguata una suddivisione casuale eseguita a livello di singola immagine. Fotogrammi estratti dalla stessa \textit{clip} potrebbero infatti risultare quasi identici e comparire sia nell'insieme di addestramento sia in quello di valutazione, producendo una stima eccessivamente ottimistica della capacità di generalizzazione del modello. Per evitare questa forma di contaminazione, la \textit{clip} è stata assunta come unità minima indivisibile: tutti i suoi fotogrammi appartengono allo stesso insieme.
+
+È stato introdotto anche un vincolo relativo al punto di vista. Le \textit{clip} provenienti dalla medesima telecamera sono state assegnate a un solo insieme, in modo che una stessa inquadratura non comparisse contemporaneamente nel \textit{training}, nella \textit{validation} e nel \textit{test}. In questo modo la valutazione richiede al modello di operare su punti di vista non osservati durante l'addestramento, riducendo la possibilità che le prestazioni dipendano dalla memorizzazione di uno specifico sfondo.
+
+La ripartizione nominale adottata è pari al 70\% per il \textit{training}, al 10\% per la \textit{validation} e al 20\% per il \textit{test}. Applicando i vincoli di raggruppamento descritti, le 172 \textit{clip} sono state distribuite come segue: 117 nel \textit{training set}, 19 nel \textit{validation set} e 36 nel \textit{test set}. I tre insiemi risultano pertanto disgiunti sia rispetto alle \textit{clip} sia rispetto alle inquadrature.
+
+%TODO: [TABELLA] QUI: riepilogo degli split con percentuale nominale, numero di video (117/19/36), criterio di separazione per inquadratura e totale di 91.410 immagini annotate.
+
+Questa suddivisione è stata mantenuta invariata nella successiva conversione del \textit{dataset}. Di conseguenza, le prestazioni dei modelli di segmentazione e di rilevazione possono essere confrontate sugli stessi fotogrammi e sui medesimi punti di vista, senza introdurre differenze dovute alla composizione degli insiemi di valutazione.
+
+\section{Conversione nel formato YOLO Detection}
+
+Il \textit{dataset} per l'\textit{object detection} è stato derivato direttamente da quello per YOLO-SEG, senza eseguire una nuova attività di annotazione. Per ciascuna maschera, uno \textit{script} Python ha determinato i valori estremi delle coordinate del poligono e ha ricavato la più piccola \textit{bounding box} assiale in grado di contenerlo. La regione è stata quindi espressa nel formato Ultralytics YOLO Detection~1.0 \cite{CVATFormats} mediante l'identificativo della classe e i quattro valori normalizzati relativi al centro, alla larghezza e all'altezza della \textit{bounding box}.
+
+%TODO: [LISTATO] QUI: estratto reale della riga corrispondente nel formato YOLO Detection, mostrando l'identificativo della classe person e i valori normalizzati del centro, della larghezza e dell'altezza della bounding box. Utilizzare la stessa immagine e la stessa istanza del listato relativo al formato YOLO Segmentation.
+
+La conversione modifica esclusivamente la rappresentazione spaziale dell'istanza. La classe rimane \texttt{person}, il numero di immagini utili resta pari a 91\,410 e l'assegnazione ai tre insiemi di \textit{training}, \textit{validation} e \textit{test} non cambia. I due \textit{dataset} estesi condividono quindi esattamente i fotogrammi di ingresso e differiscono soltanto per il livello di dettaglio dell'annotazione: il contorno poligonale nel caso di YOLO-SEG e il rettangolo di delimitazione nel caso di YOLO.
+
+%TODO: [FIGURA] QUI: confronto sullo stesso fotogramma tra maschere del dataset YOLO-SEG e bounding box ottenute per il dataset YOLO Detection.
+
+L'origine comune delle annotazioni consente un confronto controllato tra i due compiti. Gli errori grossolani di localizzazione presenti in una maschera possono propagarsi anche alla relativa \textit{bounding box}; le piccole irregolarità del contorno hanno invece un'incidenza minore sulla rappresentazione rettangolare. Il \textit{dataset} di \textit{detection} risulta pertanto meno ricco dal punto di vista geometrico, ma anche meno dipendente dalla precisione puntuale del bordo segmentato.
+
+\section{Vantaggi e limiti del dataset}
+\label{sec:dataset-vantaggi-limiti}
+
+Il principale vantaggio della raccolta è la sua estensione. Le 91\,410 immagini annotate permettono di osservare la classe \texttt{person} in numerose configurazioni, con soggetti isolati o ravvicinati, differenti posture e diversi livelli di immersione. La presenza di sei inquadrature introduce inoltre variazioni di scala, prospettiva e porzione di vasca osservata. Questi elementi assumono particolare importanza in un sistema destinato a operare in un ambiente nel quale l'aspetto del soggetto cambia rapidamente a causa dell'acqua e del movimento.
+
+Un secondo vantaggio riguarda il realismo delle scene. Le registrazioni non comprendono soltanto simulazioni controllate di annegamento, ma anche nuoto, tuffi, gioco e interazioni tra più partecipanti. Schizzi, riflessi, palloni, bandiere e occlusioni costituiscono sorgenti di difficoltà, ma rappresentano anche condizioni plausibili durante l'utilizzo ordinario di una piscina. La complessità del materiale riduce quindi la distanza tra le immagini di addestramento e il contesto applicativo previsto.
+
+La raccolta presenta tuttavia alcuni limiti. Il primo riguarda la qualità non uniforme delle maschere. L'annotazione automatica ha consentito di raggiungere una dimensione elevata, ma ha prodotto errori e segmentazioni parziali che non è stato possibile correggere integralmente nel tempo disponibile. Il controllo manuale e la chiusura morfologica hanno migliorato le annotazioni, senza eliminare ogni imprecisione nei contorni più complessi.
+
+Un secondo limite è la possibile ridondanza temporale. Il campionamento a 10 fotogrammi al secondo produce immagini consecutive molto simili, soprattutto quando i soggetti si muovono lentamente. La separazione per \textit{clip} impedisce che tale somiglianza contamini insiemi differenti, ma non elimina la correlazione interna al \textit{training set}. Una quantità elevata di immagini non corrisponde quindi necessariamente allo stesso numero di configurazioni indipendenti.
+
+Infine, tutte le registrazioni sono state realizzate in una sola giornata e in un unico impianto. Le sei telecamere offrono punti di vista differenti, ma condividono la medesima piscina, le stesse condizioni generali di illuminazione e lo stesso contesto architettonico. La capacità del modello di generalizzare a piscine con colori, profondità, coperture e illuminazioni differenti deve pertanto essere verificata separatamente.
+
+%TODO: [FIGURA] QUI: esempi rappresentativi della variabilità del dataset, affiancando una scena semplice a scene con schizzi, tuffi, oggetti estranei e più persone parzialmente occluse.
+
+Nel complesso, i due \textit{dataset} ottenuti costituiscono una base sperimentale comune per l'addestramento e il confronto dei modelli dedicati alla segmentazione di istanza e all'\textit{object detection}, pur con i limiti di rappresentatività e qualità delle annotazioni appena discussi. Il capitolo successivo descrive il processo di \textit{fine-tuning} dei modelli YOLO e ne analizza le prestazioni, con particolare attenzione al confronto tra le diverse taglie e all'idoneità per l'elaborazione in tempo reale.
