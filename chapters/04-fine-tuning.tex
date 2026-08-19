@@ -1,4 +1,175 @@
 \chapter{Fine-tuning e Analisi dei Risultati}
+%TODO: review everything here
+Il capitolo descrive il processo di \textit{fine-tuning} applicato ai modelli YOLO impiegati per la rilevazione e la segmentazione dei bagnanti. L'obiettivo dell'analisi non consiste soltanto nell'individuare la configurazione con il valore più elevato di una singola metrica, ma nel valutare congiuntamente la capacità di localizzazione, la completezza delle rilevazioni e il costo computazionale. Quest'ultimo aspetto assume particolare importanza perché il modello è destinato a sostituire il primo stadio di una \textit{pipeline} che deve elaborare continuativamente più flussi video.
 
-%TODO: scrivere tutto
-Testo segnaposto.
+Gli esperimenti considerati nel seguito utilizzano esclusivamente il \textit{dataset} completo descritto nel Capitolo~3. I risultati riguardano due compiti distinti: l'\textit{object detection}, nel quale ogni bagnante è rappresentato mediante una \textit{bounding box}, e la segmentazione di istanza, nella quale YOLO-SEG produce anche una maschera della \textit{silhouette}. Questa distinzione viene mantenuta in tutta l'analisi, poiché le metriche riferite alle regioni rettangolari e quelle calcolate sulle maschere non sono direttamente intercambiabili.
+
+\section{Selezione del modello e delle taglie}
+
+Per la sperimentazione è stata adottata la famiglia YOLO26, utilizzando i pesi pre-addestrati messi a disposizione per i compiti di \textit{detection} e di segmentazione. Il ricorso a pesi pre-addestrati consente di inizializzare la rete con rappresentazioni visive già apprese su un insieme di dati generale e di adattarle successivamente al dominio specifico della piscina. Il \textit{fine-tuning} deve quindi specializzare il modello rispetto alla classe \texttt{person}, alle riprese sopraelevate e alle condizioni visive introdotte dall'acqua, senza dover apprendere da zero tutte le caratteristiche di basso livello.
+
+Sono state considerate tre taglie della stessa famiglia:
+
+\begin{itemize}
+    \item \textit{nano} (N), caratterizzata dal costo computazionale più contenuto;
+    \item \textit{small} (S), scelta come configurazione intermedia;
+    \item \textit{medium} (M), dotata di una capacità maggiore ma anche di un tempo di inferenza superiore.
+\end{itemize}
+
+L'impiego di taglie differenti permette di verificare se l'aumento della capacità del modello produca un miglioramento sostanziale rispetto al relativo incremento di latenza. Non tutte le combinazioni pianificate hanno però generato un addestramento completo e un insieme equivalente di artefatti. Per la prima configurazione sono disponibili i modelli S e M per la \textit{detection} e N, S e M per la segmentazione; per la seconda configurazione sono disponibili S e M per la \textit{detection} e S per la segmentazione. Il confronto viene pertanto svolto soltanto sulle esecuzioni per le quali è presente un \textit{checkpoint} valutabile, senza ricostruire risultati mancanti.
+
+Tutti i valori riportati nel seguito si riferiscono a immagini ridimensionate a $640\times640$ \textit{pixel}. La configurazione iniziale prevedeva la possibilità di ripetere gli esperimenti anche a 960 e 1280 \textit{pixel}; tali prove non compaiono tuttavia nei \textit{log} e nel riepilogo di valutazione disponibili. Non vengono quindi formulate conclusioni sull'effetto della risoluzione di ingresso.
+
+%TODO: [FIGURA] QUI: schema delle varianti considerate, separando YOLO Detection e YOLO-SEG e mostrando le taglie N, S e M effettivamente disponibili per le due configurazioni.
+
+\section{Configurazione del processo di fine-tuning}
+
+Gli addestramenti sono stati eseguiti utilizzando sia una macchina del Dipartimento di Ingegneria dell'Informazione dotata di GPU NVIDIA A100 SXM4 con 80~GB di memoria, sia la piattaforma di addestramento di Ultralytics. Poiché i \textit{run} sono stati distribuiti fra ambienti differenti e alcuni di essi sono stati interrotti, il tempo totale di addestramento non viene utilizzato come criterio per confrontare le taglie. La valutazione finale è stata invece ripetuta in modo uniforme sul medesimo \textit{test set} e con la stessa dimensione di ingresso.
+
+Per ogni esecuzione è stato utilizzato un modello pre-addestrato. Il numero massimo di epoche è stato fissato a 150, con \textit{early stopping} dopo 30 epoche consecutive prive di un miglioramento della funzione di validazione impiegata dal processo di addestramento. Il \textit{batch size} effettivo, verificato nei file \texttt{args.yaml} dei diversi \textit{run}, è pari a 16. L'addestramento è stato eseguito con \textit{Automatic Mixed Precision} (AMP), così da ridurre l'occupazione di memoria e sfruttare operazioni a precisione ridotta quando compatibili.
+
+La riproducibilità è stata favorita impostando il \textit{seed} a 0 e abilitando l'esecuzione deterministica. Ciò riduce le variazioni introdotte dalla casualità, pur non garantendo necessariamente un'identità bit a bit fra piattaforme, versioni delle librerie e dispositivi differenti. È stata utilizzata l'intera frazione del \textit{training set}; non sono stati abilitati né il \textit{multi-scale training} né il caricamento in modalità rettangolare. La dimensione di ingresso è rimasta quindi costante durante ciascun esperimento.
+
+La pianificazione del \textit{learning rate} non utilizza un andamento cosinusoidale. Sono previste tre epoche di \textit{warm-up}, con \textit{warm-up momentum} pari a 0{,}8 e \textit{warm-up bias learning rate} pari a 0{,}1. Il fattore finale del \textit{learning rate}, indicato dal parametro \texttt{lrf}, è pari a 0{,}01, mentre il \textit{weight decay} è fissato a 0{,}0005. Il parametro \texttt{close\_mosaic} è impostato a 10, con l'intenzione di disabilitare l'augmentazione \textit{mosaic} nelle ultime dieci epoche del piano completo; i \textit{run} terminati anticipatamente possono tuttavia non avere raggiunto questa fase.
+
+I coefficienti principali della funzione obiettivo sono stati mantenuti invariati nelle due configurazioni: 7{,}5 per la componente di localizzazione delle \textit{bounding box}, 0{,}5 per la classificazione e 1{,}5 per la \textit{Distribution Focal Loss}. Gli ulteriori parametri relativi a compiti non utilizzati, quali la stima della posa, non intervengono nella scelta fra i modelli analizzati.
+
+\subsection{Prima configurazione}
+
+La prima configurazione affida alla modalità automatica della libreria la scelta dell'ottimizzatore, indicata nei file di esecuzione mediante \texttt{optimizer: auto}. Negli appunti sperimentali la selezione risultante è riportata come MuSGD. Il \textit{learning rate} iniziale configurato è pari a 0{,}01 e nessuno strato viene congelato: l'ottimizzazione può quindi modificare l'intera rete sia nel compito di \textit{detection} sia in quello di segmentazione.
+
+Questa impostazione costituisce il primo riferimento per misurare il beneficio del \textit{fine-tuning}. L'assenza di congelamento offre al modello la massima libertà di adattamento, ma espone anche tutte le rappresentazioni pre-addestrate agli aggiornamenti prodotti dal nuovo dominio. In presenza di un \textit{learning rate} relativamente elevato, l'evoluzione delle metriche di validazione deve pertanto essere controllata insieme alle \textit{loss} di addestramento.
+
+\subsection{Seconda configurazione}
+
+La seconda configurazione introduce tre modifiche principali. L'ottimizzatore viene impostato esplicitamente ad AdamW, il \textit{learning rate} iniziale viene ridotto da 0{,}01 a 0{,}0001 e, per i modelli di \textit{detection}, vengono congelati i primi dieci strati. In questo modo la parte iniziale della rete conserva le rappresentazioni pre-addestrate, mentre gli strati successivi vengono adattati al nuovo dominio con aggiornamenti più contenuti.
+
+Nel caso di YOLO-SEG il congelamento non è stato applicato, come confermato dal valore \texttt{freeze: null} nei file di configurazione. Tale differenza è necessaria per interpretare correttamente i risultati: il confronto fra le due configurazioni di segmentazione non isola soltanto l'effetto dell'ottimizzatore, ma riguarda l'insieme dei parametri effettivamente impiegati. Tutte le altre impostazioni comuni, comprese le 150 epoche massime, la pazienza pari a 30, il \textit{batch size} pari a 16 e la risoluzione di 640 \textit{pixel}, restano invariate.
+
+%TODO: [TABELLA] QUI: confronto completo fra le due configurazioni. Riportare: epochs 150, batch 16, imgsz 640, patience 30, pretrained true, seed 0, deterministic true, AMP true, optimizer auto/MuSGD contro AdamW, lr0 0,01 contro 0,0001, lrf 0,01, weight decay 0,0005, warm-up 3 epoche, momentum 0,937, cos_lr false, close_mosaic 10, fraction 1, multi_scale 0, rect false, box 7,5, cls 0,5 e dfl 1,5. Specificare freeze null nella prima configurazione; freeze 10 per Detection e null per Segmentation nella seconda.
+
+%TODO: [LISTATO] QUI: estratto reale e abbreviato dei file args.yaml delle due configurazioni, includendo esclusivamente i parametri rilevanti e mostrando separatamente il valore freeze per YOLO e YOLO-SEG.
+
+\section{Tecniche di data augmentation}
+
+Il \textit{dataset} presenta condizioni visive complesse, ma proviene da un unico impianto e da una sola giornata di acquisizione. La \textit{data augmentation} è stata quindi utilizzata per aumentare la variabilità osservata durante l'addestramento senza modificare il contenuto semantico delle immagini. Le trasformazioni sono state mantenute relativamente moderate, così da non generare geometrie incompatibili con la scena reale.
+
+Le variazioni cromatiche agiscono nello spazio HSV. L'ampiezza configurata è pari a 0{,}015 per la tonalità, 0{,}4 per la saturazione e 0{,}3 per la luminosità. Queste trasformazioni simulano parzialmente variazioni dell'illuminazione, della risposta della telecamera e dell'aspetto dell'acqua. Dal punto di vista geometrico vengono applicate rotazioni fino a 5 gradi, traslazioni fino al 5\% della dimensione dell'immagine e variazioni di scala pari a 0{,}3. \textit{Shear} e trasformazioni prospettiche sono disabilitate.
+
+Il ribaltamento orizzontale viene applicato con probabilità 0{,}5, mentre quello verticale è disabilitato. La scelta è coerente con la struttura della scena: una riflessione orizzontale conserva una configurazione plausibile della vasca, mentre un'immagine capovolta verticalmente non rappresenterebbe un punto di vista operativo realistico. L'augmentazione \textit{mosaic} è utilizzata con probabilità 0{,}5; \textit{mixup} non viene applicato. Nella prima configurazione il parametro \textit{copy-paste}, rilevante soprattutto per il compito di segmentazione, è posto a 0{,}1, mentre nella seconda configurazione è disabilitato.
+
+L'augmentazione aumenta la varietà dei campioni, ma non sostituisce la raccolta di dati in nuovi impianti. In particolare, non introduce realmente differenti materiali della vasca, condizioni meteorologiche, configurazioni delle corsie o prospettive di ripresa. La capacità di generalizzare al di fuori del sito di acquisizione resta quindi un aspetto da verificare con un insieme di dati esterno.
+
+%TODO: [FIGURA] QUI: esempi della stessa immagine prima e dopo le principali augmentazioni, includendo variazioni HSV, rotazione/traslazione, scala, flip orizzontale e mosaic. Evitare di mostrare trasformazioni non effettivamente utilizzate.
+
+\section{Protocollo e metriche di valutazione}
+
+Durante l'addestramento il \textit{validation set} viene utilizzato per controllare l'evoluzione del modello e per conservare il \textit{checkpoint} migliore. La valutazione conclusiva viene invece eseguita sul \textit{test set}, mantenuto separato sia rispetto alle \textit{clip} sia rispetto alle inquadrature impiegate negli altri insiemi, come descritto nel Capitolo~3. Tutte le metriche finali presenti nel file \texttt{evaluation\_summary.csv} sono calcolate a partire dai pesi \texttt{best.pt} dei rispettivi \textit{run}.
+
+La precisione misura la quota di predizioni positive che corrisponde a un'istanza annotata. Indicando con $TP$ i veri positivi e con $FP$ i falsi positivi, essa è definita come
+
+\begin{equation}
+    \operatorname{Precision}
+    =
+    \frac{TP}{TP+FP}.
+\end{equation}
+
+Il \textit{recall} misura invece la quota di istanze annotate che il modello riesce a rilevare. Indicando con $FN$ i falsi negativi, si ha
+
+\begin{equation}
+    \operatorname{Recall}
+    =
+    \frac{TP}{TP+FN}.
+\end{equation}
+
+Le due misure descrivono errori differenti. Una precisione ridotta segnala un numero maggiore di rilevazioni spurie, mentre un \textit{recall} ridotto indica la perdita di istanze reali. Nel contesto della \textit{pipeline}, una mancata rilevazione può interrompere o rendere meno stabile la traccia di un bagnante; la precisione deve tuttavia rimanere elevata per evitare che riflessi, schizzi o oggetti presenti in vasca vengano propagati alle fasi successive.
+
+L'\textit{Average Precision} (AP) riassume l'andamento della precisione rispetto al \textit{recall} al variare della soglia di confidenza. Una predizione viene considerata corretta quando la sua \textit{Intersection over Union} con l'annotazione supera la soglia stabilita. La metrica $\mathrm{mAP}_{50}$ utilizza una soglia IoU pari a 0{,}50, mentre $\mathrm{mAP}_{50:95}$ media i risultati ottenuti per soglie comprese tra 0{,}50 e 0{,}95, con incremento pari a 0{,}05. Quest'ultima metrica penalizza maggiormente le localizzazioni imprecise. Poiché il \textit{dataset} contiene una sola classe, la media fra classi coincide di fatto con l'AP della classe \texttt{person}; viene mantenuta la denominazione mAP adottata dallo strumento di valutazione.
+
+Per i modelli di \textit{detection}, l'IoU è calcolata sulle \textit{bounding box}; per YOLO-SEG le metriche riportate nel riepilogo sono invece quelle delle maschere. I valori dei due compiti non devono pertanto essere confrontati come se misurassero lo stesso oggetto geometrico. Una maschera deve riprodurre un contorno più dettagliato e viene valutata a livello di regione segmentata, mentre una \textit{bounding box} rappresenta soltanto il rettangolo che racchiude l'istanza.
+
+Il tempo di inferenza è espresso in millisecondi per immagine. Dal suo reciproco è stato ricavato un \textit{throughput} teorico
+
+\begin{equation}
+    \mathrm{FPS}_{\mathrm{teorici}}
+    =
+    \frac{1000}{t_{\mathrm{inf}}},
+\end{equation}
+
+dove $t_{\mathrm{inf}}$ è il tempo medio di inferenza in millisecondi. Tale valore descrive esclusivamente l'esecuzione del modello nell'ambiente di valutazione e non comprende necessariamente acquisizione, decodifica, \textit{pre-processing}, associazione delle tracce, calcolo dei descrittori e comunicazione con gli altri componenti.
+
+\section{Analisi del processo di addestramento}
+
+L'analisi delle curve disponibili mostra comportamenti differenti fra le due configurazioni. Il numero massimo di 150 epoche costituisce un limite superiore, non il numero effettivamente eseguito da ogni \textit{run}. I modelli N di segmentazione, S di \textit{detection} e S di segmentazione della prima configurazione registrano 31 epoche: in tutti e tre i casi il massimo della $\mathrm{mAP}_{50:95}$ di validazione compare alla prima epoca e le successive 30 epoche non producono un miglioramento sufficiente, determinando l'\textit{early stopping}.
+
+Le \textit{loss} di addestramento continuano generalmente a diminuire, mentre le metriche di validazione oscillano o si riducono dopo il massimo iniziale. Questo andamento segnala che la prosecuzione dell'ottimizzazione non migliora la capacità misurata sull'insieme di validazione. È compatibile con un adattamento eccessivo ai dati di \textit{training} o con aggiornamenti iniziali poco stabili, ma i soli \textit{log} non permettono di attribuire il comportamento a una causa unica. Il \textit{checkpoint} migliore evita comunque di utilizzare direttamente i pesi dell'ultima epoca.
+
+Il grafico disponibile per YOLO26-M Detection nella prima configurazione mostra a sua volta 31 epoche. Dopo oscillazioni marcate nelle prime iterazioni, le \textit{loss} di addestramento diminuiscono regolarmente; le metriche di validazione recuperano soltanto in parte e restano inferiori al massimo iniziale. Per questo \textit{run} non è presente il corrispondente file \texttt{results.csv}, ma è disponibile il \textit{checkpoint} migliore e la relativa valutazione sul \textit{test set}.
+
+%TODO: [GRAFICO] QUI: curve di training e validation della prima configurazione. Mostrare almeno train/val loss e mAP50-95 per YOLO26-S Detection e YOLO26-S-SEG; affiancare, se utile, il results.png di YOLO26-M Detection. Evidenziare l'epoca del massimo e l'arresto dopo la patience.
+
+La configurazione AdamW produce l'andamento più convincente nel caso di YOLO26-M Detection. Il \textit{run} disponibile comprende 93 epoche e la $\mathrm{mAP}_{50:95}$ di validazione raggiunge il proprio massimo osservato alla settantacinquesima epoca, pari a circa 0{,}695. Il miglioramento distribuito su una parte più ampia dell'addestramento, rispetto ai massimi concentrati nella prima epoca della configurazione precedente, indica un processo più graduale per questa taglia.
+
+YOLO26-S Detection con AdamW raggiunge invece il massimo osservato della $\mathrm{mAP}_{50:95}$ all'ottava epoca e termina alla trentottesima, in accordo con una pazienza pari a 30. Il \textit{run} AdamW di YOLO26-S-SEG contiene soltanto 13 epoche e raggiunge il massimo osservato alla terza. Quest'ultimo risultato deve essere interpretato con cautela, poiché gli appunti sperimentali documentano un'interruzione del server che ha impedito di completare correttamente alcune esecuzioni. Anche il \textit{log} della prima configurazione YOLO26-M-SEG si arresta dopo 14 epoche. La presenza dei relativi \textit{checkpoint} consente una valutazione sul \textit{test set}, ma non dimostra che l'ottimizzazione abbia raggiunto la convergenza.
+
+%TODO: [GRAFICO] QUI: confronto delle curve di validazione fra YOLO26-M Detection con configurazione automatica e con AdamW. Indicare il massimo osservato alla 75a epoca per AdamW e distinguere graficamente i run interrotti da quelli terminati per early stopping.
+
+Nel complesso, le curve non giustificano l'affermazione che AdamW sia sempre superiore. Il beneficio più chiaro riguarda YOLO26-M Detection, mentre per la taglia S e per la segmentazione il confronto è più incerto. La valutazione finale deve quindi essere condotta separatamente per compito, taglia e configurazione.
+
+\section{Risultati sul test set}
+
+I risultati finali confrontano innanzitutto i pesi pre-addestrati originali, valutati senza adattamento al nuovo \textit{dataset}, con i migliori \textit{checkpoint} ottenuti dal \textit{fine-tuning}. Le metriche vengono riportate in percentuale, mentre il tempo di inferenza rimane espresso in millisecondi per immagine. Gli scarti descritti nel testo sono espressi in punti percentuali, non come variazioni percentuali relative.
+
+\subsection{Object detection}
+
+Prima del \textit{fine-tuning}, l'aumento della taglia produce un miglioramento regolare. YOLO26-N ottiene una $\mathrm{mAP}_{50:95}$ del 39{,}53\%, YOLO26-S del 47{,}89\% e YOLO26-M del 54{,}65\%. La taglia M raggiunge inoltre una precisione dell'88{,}47\% e un \textit{recall} del 74{,}62\%. Il risultato mostra che i pesi originali sono già in grado di riconoscere molte persone, ma perdono una parte rilevante dei bagnanti e localizzano con minore accuratezza le istanze osservate nel nuovo dominio.
+
+La prima configurazione di \textit{fine-tuning} aumenta la $\mathrm{mAP}_{50:95}$ di YOLO26-S dal 47{,}89\% al 70{,}21\%, con un incremento di 22{,}32 punti. Il \textit{recall} passa dal 69{,}65\% al 90{,}21\%, mentre la precisione raggiunge il 92{,}55\%. Per YOLO26-M la $\mathrm{mAP}_{50:95}$ cresce dal 54{,}65\% al 72{,}73\% e il \textit{recall} dal 74{,}62\% al 90{,}89\%. Il miglioramento coinvolge quindi sia la capacità di ritrovare le istanze sia la precisione della loro localizzazione.
+
+Con la configurazione AdamW, YOLO26-S raggiunge una $\mathrm{mAP}_{50:95}$ del 69{,}86\%, valore molto vicino ma leggermente inferiore al 70{,}21\% della prima configurazione. Per la taglia M si osserva invece il risultato migliore dell'intero insieme di modelli di \textit{detection}: precisione del 93{,}70\%, \textit{recall} del 94{,}61\%, $\mathrm{mAP}_{50}$ del 97{,}13\% e $\mathrm{mAP}_{50:95}$ del 74{,}28\%. Rispetto al modello M non adattato, gli incrementi sono pari a 5{,}24 punti di precisione, 19{,}99 punti di \textit{recall}, 12{,}65 punti di $\mathrm{mAP}_{50}$ e 19{,}63 punti di $\mathrm{mAP}_{50:95}$.
+
+%TODO: [TABELLA] QUI: risultati completi di Detection sul test set. Colonne: modello, configurazione, precision, recall, mAP50, mAP50-95, inference ms, FPS. Righe: originale N (71,83; 61,65; 68,94; 39,53; 0,92; 1084,5), originale S (80,57; 69,65; 78,95; 47,89; 1,44; 693,9), originale M (88,47; 74,62; 84,47; 54,65; 2,90; 344,6), fine-tuned auto S (92,55; 90,21; 95,60; 70,21; 1,48; 677,0), fine-tuned auto M (92,22; 90,89; 96,07; 72,73; 2,87; 348,9), fine-tuned AdamW S (90,74; 88,72; 95,16; 69,86; 1,42; 701,9), fine-tuned AdamW M (93,70; 94,61; 97,13; 74,28; 2,86; 349,2). Evidenziare il massimo di ogni metrica senza includere altri metodi.
+
+Il confronto fra S e M evidenzia il consueto compromesso fra accuratezza e velocità. Il modello M con AdamW supera il migliore S di 1{,}15 punti in precisione, 4{,}40 punti in \textit{recall}, 1{,}53 punti in $\mathrm{mAP}_{50}$ e 4{,}07 punti in $\mathrm{mAP}_{50:95}$, ma richiede circa 2{,}86~ms invece di 1{,}48~ms per immagine. La taglia M rappresenta quindi la scelta orientata alla massima qualità della \textit{detection}; la taglia S conserva un vantaggio quando il numero di flussi simultanei o l'hardware disponibile rendono prioritaria la latenza.
+
+\subsection{Segmentazione di istanza}
+
+Anche per YOLO-SEG i pesi originali migliorano al crescere della taglia. La $\mathrm{mAP}_{50:95}$ delle maschere passa dal 38{,}99\% della taglia N al 42{,}19\% della S e al 48{,}04\% della M. Il \textit{recall} rimane però compreso fra il 65{,}59\% e il 72{,}99\%, indicando che una parte delle persone annotate non viene segmentata correttamente.
+
+La prima configurazione produce un miglioramento consistente per tutte le taglie. YOLO26-N-SEG raggiunge una $\mathrm{mAP}_{50}$ del 95{,}37\% e una $\mathrm{mAP}_{50:95}$ del 62{,}99\%, con un incremento di 24{,}00 punti nella metrica più restrittiva. YOLO26-S-SEG raggiunge rispettivamente il 96{,}65\% e il 66{,}44\%, mentre YOLO26-M-SEG ottiene il 96{,}98\% e il 66{,}52\%. La differenza fra S e M è quindi pari a soli 0{,}33 punti sulla $\mathrm{mAP}_{50}$ e 0{,}08 punti sulla $\mathrm{mAP}_{50:95}$.
+
+Il modello M conserva il valore assoluto più elevato anche per la precisione, pari al 93{,}88\%, mentre il migliore \textit{recall} appartiene alla taglia S con il 92{,}33\%. Il passaggio da S a M non determina dunque un miglioramento uniforme di tutte le metriche. A fronte di risultati quasi equivalenti sulla qualità delle maschere, il tempo di inferenza aumenta da 1{,}82~ms a 3{,}93~ms per immagine.
+
+L'esecuzione AdamW disponibile per la variante S di YOLO26-SEG ottiene una precisione dell'86{,}97\%, un \textit{recall} dell'89{,}90\%, una $\mathrm{mAP}_{50}$ del 95{,}31\% e una $\mathrm{mAP}_{50:95}$ del 66{,}21\%. Rispetto alla prima configurazione della stessa taglia, la $\mathrm{mAP}_{50:95}$ diminuisce di soli 0{,}23 punti, ma precisione e \textit{recall} sono inferiori. Considerata anche la disponibilità di sole 13 epoche nel relativo \textit{log}, questo esperimento non fornisce evidenza sufficiente per preferire AdamW nel compito di segmentazione.
+
+%TODO: [TABELLA] QUI: risultati completi di Segmentation sul test set, specificando che le metriche sono calcolate sulle maschere. Colonne: modello, configurazione, precision, recall, mAP50, mAP50-95, inference ms, FPS. Righe: originale N (82,50; 65,59; 76,05; 38,99; 1,06; 943,9), originale S (87,27; 71,75; 81,57; 42,19; 1,85; 540,3), originale M (89,26; 72,99; 84,20; 48,04; 3,98; 251,1), fine-tuned auto N (90,01; 89,57; 95,37; 62,99; 1,11; 899,6), fine-tuned auto S (92,78; 92,33; 96,65; 66,44; 1,82; 548,9), fine-tuned auto M (93,88; 92,08; 96,98; 66,52; 3,93; 254,2), fine-tuned AdamW S (86,97; 89,90; 95,31; 66,21; 1,83; 547,9).
+
+Per la segmentazione, YOLO26-M-SEG costituisce la scelta orientata alla massima precisione assoluta, ma YOLO26-S-SEG presenta il compromesso più favorevole. La riduzione di latenza è superiore al 50\%, mentre la perdita sulla $\mathrm{mAP}_{50:95}$ è inferiore a un decimo di punto. Anche la taglia N rimane un'opzione utile su dispositivi più limitati: rispetto alla S riduce il tempo da 1{,}82~ms a 1{,}11~ms, al costo di 3{,}45 punti di $\mathrm{mAP}_{50:95}$.
+
+\subsection{Effetto complessivo del fine-tuning}
+
+Il \textit{fine-tuning} migliora in modo netto tutte le taglie per le quali è disponibile un confronto con i pesi originali. Gli incrementi più evidenti riguardano il \textit{recall} e la $\mathrm{mAP}_{50:95}$, segno che l'adattamento non si limita ad aumentare il numero di rilevazioni, ma migliora anche la loro sovrapposizione con le annotazioni. L'effetto è particolarmente rilevante in un ambiente nel quale il corpo può essere parzialmente immerso, deformato visivamente dalla superficie e confuso con riflessi o schizzi.
+
+Il tempo di inferenza rimane invece sostanzialmente invariato fra il modello originale e quello adattato della stessa taglia. Questo risultato è atteso, poiché il \textit{fine-tuning} modifica i valori dei pesi ma non introduce nuovi strati né aumenta la risoluzione di ingresso. Le piccole differenze misurate, dell'ordine di pochi centesimi di millisecondo, non indicano una variazione strutturale del costo del modello e possono dipendere dalla normale variabilità della misura.
+
+%TODO: [GRAFICO] QUI: diagramma accuratezza-latenza con mAP50-95 sull'asse verticale e inference ms sull'asse orizzontale. Usare simboli distinti per Detection e Segmentation e colori distinti per modelli originali, fine-tuned auto e fine-tuned AdamW. Non collegare fra loro le metriche di box e maschera come se fossero direttamente confrontabili.
+
+%TODO: [FIGURA] QUI: confronto qualitativo sullo stesso insieme di fotogrammi del test set: annotazione reale, modello originale e migliore modello fine-tuned. Inserire esempi con più persone, occlusioni, schizzi e soggetti parzialmente immersi; mostrare separatamente bounding box e maschere.
+
+\section{Idoneità per un'applicazione real-time}
+
+Il modello più lento fra quelli fine-tuned considerati è YOLO26-M-SEG, con un tempo medio di inferenza di 3{,}93~ms per immagine, equivalente a circa 254 \textit{frame} al secondo se si considera esclusivamente l'inferenza. YOLO26-M Detection richiede 2{,}86~ms, mentre le taglie S si collocano approssimativamente fra 1{,}4 e 1{,}8~ms. Nell'ambiente hardware utilizzato per la valutazione, tutti i modelli dispongono quindi di un margine ampio rispetto al ritmo di acquisizione dei flussi video considerato nel progetto.
+
+Il numero teorico di FPS non coincide tuttavia con la frequenza raggiungibile dall'intero sistema. La \textit{pipeline} deve gestire più telecamere e comprende trasferimento delle immagini, ridimensionamento, normalizzazione, filtraggio delle predizioni, costruzione delle maschere, \textit{tracking} e calcolo dei descrittori. Inoltre, i tempi riportati sono legati al dispositivo usato per la valutazione e non possono essere trasferiti direttamente a una GPU differente o a un sistema \textit{edge}.
+
+Di conseguenza, i risultati dimostrano che l'inferenza del modello non costituisce, sull'hardware di prova, un ostacolo al funzionamento in tempo reale. Non costituiscono invece una misura completa della latenza \textit{end-to-end}. La verifica definitiva richiede un \textit{benchmark} della \textit{pipeline} integrata, con tutti i flussi video attivi, includendo sia i tempi medi sia i valori di coda che descrivono i fotogrammi elaborati più lentamente.
+
+La scelta della taglia dipende infine dall'informazione richiesta dalle fasi successive. Se è sufficiente una regione rettangolare, YOLO26-M Detection con AdamW offre le metriche migliori e mantiene una latenza contenuta. Quando è necessaria la \textit{silhouette} per calcolare area, orientamento e descrittori geometrici, YOLO26-S-SEG appare particolarmente favorevole: le sue metriche sono quasi equivalenti a quelle della taglia M, ma il tempo di inferenza è meno della metà. La compatibilità effettiva di queste uscite con il resto di DEWS viene esaminata nel capitolo successivo.
+
+\section{Considerazioni conclusive}
+
+La sperimentazione conferma l'utilità del \textit{fine-tuning} sul dominio specifico. Rispetto ai pesi originali, i modelli adattati aumentano sensibilmente precisione, \textit{recall} e mAP senza introdurre un costo di inferenza apprezzabile a parità di architettura. Il miglior risultato di \textit{detection} è ottenuto dalla taglia M con AdamW, che raggiunge una $\mathrm{mAP}_{50:95}$ del 74{,}28\% e un \textit{recall} del 94{,}61\%. Per la segmentazione, la taglia M della prima configurazione raggiunge il massimo assoluto, ma la taglia S offre un rapporto più favorevole fra qualità delle maschere e latenza.
+
+L'analisi presenta comunque alcuni limiti. Le configurazioni non sono disponibili per tutte le combinazioni di taglia e compito, alcuni \textit{run} sono stati interrotti e la sola risoluzione verificata è pari a 640 \textit{pixel}. Il \textit{test set} utilizza inquadrature escluse dall'addestramento, ma appartiene allo stesso impianto e alla stessa sessione generale di acquisizione. I risultati misurano pertanto la generalizzazione rispetto a punti di vista non osservati, non ancora quella verso piscine e condizioni ambientali completamente nuove.
+
+Alla luce di questi vincoli, i risultati permettono di selezionare candidati adatti all'integrazione e di mostrare che il requisito temporale è plausibile sull'hardware di prova. Il passaggio successivo consiste nel verificare come le \textit{bounding box} e, soprattutto, le maschere prodotte da YOLO-SEG possano alimentare il tracciamento e il calcolo dei descrittori comportamentali della \textit{pipeline} esistente.
