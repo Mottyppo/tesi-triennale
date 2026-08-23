@@ -1,4 +1,12 @@
 \chapter{Conclusioni}
 
 %TODO: scrivere tutto
+% Materiale trasferito dalla precedente sezione conclusiva del Capitolo 4.
+%
+% La sperimentazione conferma l'utilità del \textit{fine-tuning} sul dominio specifico. Rispetto ai pesi originali, i modelli adattati aumentano sensibilmente precisione, \textit{recall} e mAP senza introdurre un costo di inferenza apprezzabile a parità di architettura. Il miglior risultato di \textit{detection} è ottenuto dalla taglia M con AdamW, che raggiunge una $\mathrm{mAP}_{50:95}$ del 74{,}28\% e un \textit{recall} del 94{,}61\%. Per la segmentazione, la taglia M della prima configurazione raggiunge il massimo assoluto, ma la taglia S offre un rapporto più favorevole fra qualità delle maschere e latenza.
+%
+% L'analisi presenta comunque alcuni limiti. La campagna sperimentale considera un insieme circoscritto di combinazioni fra taglia e configurazione e adotta una sola risoluzione di ingresso, pari a 640 \textit{pixel}. Il \textit{test set} utilizza inquadrature escluse dall'addestramento, ma appartiene allo stesso impianto e alla stessa sessione generale di acquisizione. I risultati misurano pertanto la generalizzazione rispetto a punti di vista non osservati, non ancora quella verso piscine e condizioni ambientali completamente nuove.
+%
+% Alla luce di questi vincoli, i risultati permettono di selezionare candidati adatti all'integrazione e di mostrare che il requisito temporale è plausibile sull'hardware di prova. Il passaggio successivo consiste nel verificare come le \textit{bounding box} e, soprattutto, le maschere prodotte da YOLO-SEG possano alimentare il tracciamento e il calcolo dei descrittori comportamentali della \textit{pipeline} esistente.
+
 Testo segnaposto.
