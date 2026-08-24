@@ -221,6 +221,8 @@ Il principale vantaggio della raccolta è la sua estensione. Le 91\,410 immagini
 
 Un secondo vantaggio riguarda il realismo delle scene. Le registrazioni non comprendono soltanto simulazioni controllate di annegamento, ma anche nuoto, tuffi, gioco e interazioni tra più partecipanti. Schizzi, riflessi, palloni, bandiere e occlusioni costituiscono sorgenti di difficoltà, ma rappresentano anche condizioni plausibili durante l'utilizzo ordinario di una piscina. La complessità del materiale riduce quindi la distanza tra le immagini di addestramento e il contesto applicativo previsto. Alcune delle condizioni visive rappresentate nella raccolta sono riportate nella Figura~\ref{fig:dataset-variabilita}.
 
+La raccolta presenta tuttavia alcuni limiti. Il primo riguarda la qualità non uniforme delle maschere. L'annotazione automatica ha consentito di raggiungere una dimensione elevata, ma ha prodotto errori e segmentazioni parziali che non è stato possibile correggere integralmente nel tempo disponibile. Il controllo manuale e la chiusura morfologica hanno migliorato le annotazioni, senza eliminare ogni imprecisione nei contorni più complessi.
+
 \clearpage
 \begin{figure}[htbp]
     \centering
@@ -247,8 +249,6 @@ Un secondo vantaggio riguarda il realismo delle scene. Le registrazioni non comp
     \caption[Esempi della variabilità del \textit{dataset}]{Esempi rappresentativi della variabilità del \textit{dataset} in termini di affollamento, postura, interazione con l'acqua, presenza di oggetti e posizione dei soggetti}
     \label{fig:dataset-variabilita}
 \end{figure}
-
-La raccolta presenta tuttavia alcuni limiti. Il primo riguarda la qualità non uniforme delle maschere. L'annotazione automatica ha consentito di raggiungere una dimensione elevata, ma ha prodotto errori e segmentazioni parziali che non è stato possibile correggere integralmente nel tempo disponibile. Il controllo manuale e la chiusura morfologica hanno migliorato le annotazioni, senza eliminare ogni imprecisione nei contorni più complessi.
 
 Un secondo limite è la possibile ridondanza temporale. Il campionamento a 10 fotogrammi al secondo produce immagini consecutive molto simili, soprattutto quando i soggetti si muovono lentamente. La separazione per clip impedisce che tale somiglianza contamini insiemi differenti, ma non elimina la correlazione interna al \textit{training set}. Una quantità elevata di immagini non corrisponde quindi necessariamente allo stesso numero di configurazioni indipendenti.
 
