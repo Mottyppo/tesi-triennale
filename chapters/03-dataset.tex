@@ -151,7 +151,7 @@ Le annotazioni così elaborate sono state sottoposte a un secondo controllo visi
 Dopo il secondo controllo, le annotazioni sono state convertite nel formato Ultralytics YOLO Segmentation~1.0 \cite{CVATFormats}. A ogni immagine è associato un file di testo contenente una riga per ciascuna persona visibile. La riga riporta l'identificativo della classe seguito dalle coordinate normalizzate dei vertici del poligono che approssima il contorno dell'istanza. Poiché il problema comprende la sola classe \texttt{person}, tutte le istanze condividono lo stesso identificativo di classe, mentre rimangono separate attraverso i rispettivi poligoni. Il Listato~\ref{lst:dataset-yolo-segmentation} riporta integralmente una riga reale estratta dal \textit{dataset}.
 
 \vspace{0.3\baselineskip}
-\begin{lstlisting}[style=yoloannotation, caption={Riga completa relativa all'istanza 5 del fotogramma 482 del video 126 nel formato YOLO Segmentation}, label={lst:dataset-yolo-segmentation}]
+\begin{lstlisting}[style=yoloannotation, caption={[Annotazione nel formato YOLO Segmentation]Riga completa relativa all'istanza 5 del fotogramma 482 del video 126 nel formato YOLO Segmentation}, label={lst:dataset-yolo-segmentation}]
 0 0.203646 0.119444 0.197396 0.119444 0.195312 0.120370 0.193750 0.121296 0.192708 0.123148 0.191667 0.126852 0.191667 0.172222 0.201042 0.229630 0.214583 0.304630 0.216146 0.312037 0.219792 0.325000 0.220312 0.325000 0.250521 0.302778 0.252604 0.300926 0.253125 0.297222 0.253125 0.190741 0.252083 0.188889 0.205208 0.121296
 \end{lstlisting}
 
@@ -192,7 +192,7 @@ Questa suddivisione è stata mantenuta invariata nella successiva conversione de
 Il \textit{dataset} per l'\textit{object detection} è stato derivato direttamente da quello per YOLO-SEG, senza eseguire una nuova attività di annotazione. Per ciascuna maschera, uno \textit{script} Python ha determinato i valori estremi delle coordinate del poligono e ha ricavato la più piccola \textit{bounding box} assiale in grado di contenerlo. La regione è stata quindi espressa nel formato Ultralytics YOLO Detection~1.0 \cite{CVATFormats} mediante l'identificativo della classe e i quattro valori normalizzati relativi al centro, alla larghezza e all'altezza della \textit{bounding box}. Il Listato~\ref{lst:dataset-yolo-detection} mostra la riga completa ottenuta dalla conversione della stessa istanza impiegata nel Listato~\ref{lst:dataset-yolo-segmentation}.
 
 \vspace{0.3\baselineskip}
-\begin{lstlisting}[style=yoloannotation, caption={Riga completa relativa all'istanza 5 del fotogramma 482 del video 126 nel formato YOLO Detection}, label={lst:dataset-yolo-detection}]
+\begin{lstlisting}[style=yoloannotation, caption={[Annotazione nel formato YOLO Detection]Riga completa relativa all'istanza 5 del fotogramma 482 del video 126 nel formato YOLO Detection}, label={lst:dataset-yolo-detection}]
 0 0.222396 0.222222 0.061458 0.205556
 \end{lstlisting}
 
