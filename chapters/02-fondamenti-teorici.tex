@@ -13,7 +13,7 @@ DEWS è un sistema di videosorveglianza progettato per individuare precocemente 
         arrow/.style={->, >=stealth, thick}
         ]
         \node[phase, fill=gray!12] (detection) at (0,0) {Rilevazione, separazione e tracciamento dei bagnanti};
-        \node[phase, fill=blue!12] (description) at (5.2,0) {Estrazione dei descrittori comportamentali};
+        \node[phase, fill=gray!12] (description) at (5.2,0) {Estrazione dei descrittori comportamentali};
         \node[phase, fill=gray!12] (classification) at (10.4,0) {Classificazione e generazione dell'allarme};
 
         \draw[arrow] (detection) -- node[above, font=\scriptsize] {tracce} (description);
