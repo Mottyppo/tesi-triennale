@@ -1,5 +1,3 @@
-% TODO: ha senso lasciare gli elenchi? Uno per pagina o tutti nella stessa pagina?
-
 \documentclass[12pt,a4paper,hidelinks]{report}
 \input{preamble}
 \begin{document}
@@ -17,18 +15,12 @@
 
 % Elenchi
 \listoffigures
-\listoftables
-\lstlistoflistings
+\listoftablesandlistings
 
 % Capitoli
-\clearpage% TODO: teoricamente se lascio gli elenchi si può eliminare questo clearpage, ma vediamo a fine stesura
+\clearpage
 \pagenumbering{arabic}
 \includechapter{01-introduzione}
-% \chapter{Fondamenti Teorici}
-% \chapter{Realizzazione del Dataset}
-% \chapter{Fine-tuning e Analisi dei Risultati}
-% \chapter{Integrazione nella Pipeline Esistente}
-% \chapter{Conclusioni}
 \includechapter{02-fondamenti-teorici}
 \includechapter{03-dataset}
 \includechapter{04-fine-tuning}
