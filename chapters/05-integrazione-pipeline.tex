@@ -1,4 +1,92 @@
 \chapter{Integrazione nella Pipeline Esistente}
 
-%TODO: scrivere tutto
-Testo segnaposto.
+I risultati del capitolo precedente mostrano che sia YOLO sia YOLO-SEG sono in grado di rilevare i bagnanti con tempi di inferenza compatibili con un'elaborazione in tempo reale. La sostituzione del rilevatore originale di DEWS non dipende tuttavia soltanto dall'accuratezza del nuovo modello: è necessario verificare che le sue uscite contengano le informazioni richieste dal tracciamento e dal calcolo dei descrittori comportamentali.
+
+Il punto di integrazione coincide con la prima fase della \textit{pipeline} illustrata nella Figura~\ref{fig:pipeline-dews}. Il modulo originale produce una maschera di \textit{foreground}, ricava le componenti connesse e, quando più soggetti appartengono allo stesso \textit{blob}, applica il procedimento di \textit{blob splitting} \cite{Eng2008DEWS}. YOLO sostituisce la rilevazione e la separazione delle istanze, mentre il tracciamento temporale e le due fasi successive possono essere conservati. Le modalità con cui avviene tale sostituzione differiscono però tra segmentazione di istanza e \textit{object detection}.
+
+\section{Inserimento di YOLO-SEG}
+
+YOLO-SEG restituisce, per ciascuna istanza rilevata, una classe, un valore di confidenza, una \textit{bounding box} e una maschera \cite{Jocher2026YOLO26}. Nel presente caso viene mantenuta esclusivamente la classe \texttt{person}; la maschera individua i \textit{pixel} attribuiti al singolo bagnante e costituisce quindi l'equivalente informativo della \textit{silhouette} prodotta dal rilevatore originale.
+
+L'integrazione richiede un adattamento del formato, ma non l'introduzione di una nuova fase di analisi. Le maschere devono essere riportate nelle coordinate del fotogramma originale, compensando l'eventuale ridimensionamento e il \textit{padding}\footnote{Con \textit{padding} si indica l'aggiunta di \textit{pixel} ai margini dell'immagine per adattarla alle dimensioni d'ingresso previste dalla rete senza deformarne le proporzioni.} applicati all'ingresso della rete, quindi convertite nella rappresentazione binaria utilizzata dai moduli successivi. Le istanze con confidenza inferiore alla soglia operativa vengono scartate; per quelle rimanenti, la \textit{bounding box} e la maschera costituiscono l'osservazione associata al fotogramma corrente.
+
+Poiché il modello produce una maschera distinta per ogni istanza, non è più necessario ricavare i bagnanti come componenti connesse di un'unica maschera di \textit{foreground}. Viene quindi eliminato anche il procedimento iterativo di \textit{blob splitting}: due persone vicine possono essere rappresentate da due istanze diverse anche quando le rispettive regioni risultano parzialmente sovrapposte. Tale vantaggio non rende irrilevanti le occlusioni, che possono ancora causare maschere incomplete o la mancata rilevazione di un soggetto, ma evita che la loro gestione dipenda dalla ricerca di una combinazione di ellissi.
+
+Sul piano delle informazioni scambiate, YOLO-SEG è pertanto direttamente compatibile con il resto della \textit{pipeline}. L'adattatore posto tra il modello e il tracciamento modifica esclusivamente la rappresentazione dell'uscita; area, forma e contenuto cromatico della \textit{silhouette} rimangono disponibili per le elaborazioni successive.
+
+\section{Inserimento di YOLO per l'object detection}
+
+La variante di sola \textit{object detection} restituisce invece una regione rettangolare per ciascun bagnante, ma non specifica quali \textit{pixel} interni alla regione appartengano effettivamente al soggetto. La \textit{bounding box} è sufficiente per localizzare approssimativamente la persona e può alimentare un tracciatore basato soltanto sulla posizione; non è però equivalente alla \textit{silhouette} richiesta dalle definizioni originali dei descrittori di DEWS \cite{Eng2008DEWS}.
+
+L'area della regione rettangolare include infatti acqua, riflessi e possibili porzioni di altri soggetti. Anche il suo centro e il suo orientamento non coincidono necessariamente con il centroide e con l'asse principale della \textit{silhouette}. Utilizzare direttamente tali approssimazioni modificherebbe dunque il significato dei descrittori e renderebbe non omogenee le osservazioni rispetto a quelle sulle quali sono addestrati i moduli di classificazione.
+
+Per conservare l'interfaccia originale, alla rilevazione deve quindi seguire uno stadio di segmentazione. È possibile riutilizzare il metodo \textit{region-based} adottato dagli autori di DEWS oppure impiegare un differente algoritmo capace di separare soggetto e sfondo \cite{Eng2004Region,Eng2006Robust,Eng2008DEWS}. In entrambi i casi la ricerca può essere circoscritta alle sole \textit{bounding box} prodotte da YOLO, anziché essere eseguita sull'intero fotogramma. YOLO determina quindi dove cercare, mentre il segmentatore ricostruisce la maschera necessaria alla parte restante del sistema.
+
+Questa soluzione ibrida conserva inoltre la separazione delle istanze fornita dal \textit{detector}. Ogni maschera locale rimane associata alla regione dalla quale è stata ricavata e il \textit{blob splitting} globale non è più necessario. In presenza di \textit{bounding box} sovrapposte occorre comunque impedire che gli stessi \textit{pixel} vengano assegnati a più persone, ma l'ambiguità è limitata alle regioni interessate e non richiede di stimare da zero il numero di soggetti appartenenti a una componente connessa.
+
+I due percorsi di integrazione sono riassunti nella Figura~\ref{fig:integrazione-yolo-dews}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}[
+        input/.style={draw, rounded corners, align=center, minimum height=1.15cm, text width=2.25cm, inner sep=5pt, fill=gray!12, font=\small},
+        model/.style={draw, rounded corners, align=center, minimum height=1.15cm, text width=2.55cm, inner sep=5pt, fill=blue!12, line width=0.9pt, font=\small},
+        process/.style={draw, rounded corners, align=center, minimum height=1.15cm, text width=2.55cm, inner sep=5pt, fill=gray!12, font=\small},
+        shared/.style={draw, rounded corners, align=center, minimum height=1.15cm, text width=2.40cm, inner sep=5pt, fill=gray!12, font=\small},
+        arrow/.style={->, >=stealth, thick}
+        ]
+        \node[input] (frame) at (0,4.70) {Fotogramma};
+
+        \node[model] (seg) at (-4.575,3.00) {YOLO-SEG};
+
+        \node[model] (det) at (4.575,3.00) {YOLO \textit{Detection}};
+        \node[process] (box) at (4.575,1.10) {\textit{Bounding box}};
+        \node[process] (local) at (4.575,-0.80) {Segmentazione locale};
+
+        \node[shared] (masks) at (-4.575,-2.80) {Maschere di istanza};
+        \node[shared] (tracking) at (-1.525,-2.80) {\textit{Tracking}};
+        \node[shared] (descriptors) at (1.525,-2.80) {Calcolo dei descrittori};
+        \node[shared] (classification) at (4.575,-2.80) {Classificazione DEWS};
+        \coordinate (merge) at (-4.575,-1.70);
+
+        \draw[arrow] (frame) -- (seg);
+        \draw[arrow] (frame) -- (det);
+        \draw[arrow] (seg) -- (masks);
+        \draw[arrow] (det) -- (box);
+        \draw[arrow] (box) -- (local);
+        \draw[arrow] (local.south) |- (merge);
+        \draw[arrow] (masks) -- (tracking);
+        \draw[arrow] (tracking) -- (descriptors);
+        \draw[arrow] (descriptors) -- (classification);
+    \end{tikzpicture}
+    \caption[Integrazione di YOLO nella \textit{pipeline} DEWS]{Percorsi di integrazione di YOLO-SEG e YOLO \textit{Detection} nella \textit{pipeline} DEWS}
+    \label{fig:integrazione-yolo-dews}
+\end{figure}
+
+\section{Compatibilità con le fasi successive}
+
+In entrambe le configurazioni, l'uscita consegnata al tracciamento è costituita da un insieme di osservazioni separate, ciascuna associata a una regione e a una maschera. Le osservazioni del fotogramma corrente possono quindi essere confrontate con la posizione prevista delle tracce esistenti e associate sulla base della distanza tra i centroidi, mantenendo il principio impiegato da DEWS \cite{Eng2008DEWS}. YOLO opera indipendentemente su ciascun fotogramma e non sostituisce questa associazione temporale: è il tracciamento a mantenere l'identità del soggetto e a raccogliere la storia necessaria al riconoscimento del comportamento.
+
+Dalla maschera associata a ogni traccia possono poi essere calcolate le stesse proprietà di basso livello utilizzate nel sistema originale. Le sei caratteristiche intermedie $M$, $S$, $P$, $A$, $Z$ e $U$ definite nel Capitolo~2 possono pertanto essere calcolate senza modificarne il significato \cite{Eng2008DEWS}.
+
+Il classificatore e i modelli temporali ricevono il medesimo vettore di descrittori previsto dall'architettura originale e non dipendono dal procedimento con cui è stata ottenuta la maschera. Di conseguenza, la sostituzione rimane confinata a monte dell'estrazione delle caratteristiche \cite{Eng2008DEWS}.
+
+La compatibilità dell'interfaccia non impedisce tuttavia che gli errori del nuovo rilevatore si propaghino. Un falso negativo può introdurre un'interruzione nella traccia; un falso positivo può generare una traccia priva di un soggetto reale; una maschera incompleta può alterare area, orientamento e saturazione. Il tracciamento e l'analisi temporale possono attenuare errori isolati, ma non ricostruiscono automaticamente osservazioni mancanti per intervalli prolungati \cite{Eng2008DEWS}. La soglia di confidenza e i criteri di associazione devono quindi essere regolati considerando non soltanto le metriche sul singolo fotogramma, ma anche la stabilità delle tracce.
+
+\section{Impatto sulle prestazioni}
+
+L'integrazione con YOLO-SEG introduce il percorso più breve. Il modello produce in una sola inferenza sia la posizione sia la maschera e richiede successivamente soltanto il ripristino delle coordinate, il filtraggio delle istanze e il calcolo delle proprietà geometriche e cromatiche. Tra i modelli analizzati, YOLO26-S-SEG ha richiesto in media 1{,}82~ms per immagine, mentre YOLO26-M-SEG ha richiesto 3{,}93~ms, come riportato nella Tabella~\ref{tab:yolo26-risultati-segmentation}. Tali misure riguardano il solo modello e non comprendono il resto della \textit{pipeline}.
+
+La configurazione basata sulla sola \textit{detection} presenta un'inferenza più breve: i valori medi sono pari a 1{,}48~ms per YOLO26-S e 2{,}86~ms per YOLO26-M nella rispettiva configurazione migliore, come riportato nella Tabella~\ref{tab:yolo26-risultati-detection}. A questi tempi deve però essere aggiunto il costo della segmentazione locale. Indicando con $B_i$ la regione prodotta per l'istanza $i$, il dominio spaziale complessivamente esaminato dal segmentatore è limitato a
+
+\begin{equation}
+    \rho
+    =
+    \frac{\left|\bigcup_i B_i\right|}{W H},
+\end{equation}
+
+dove $W H$ è l'area del fotogramma. Quando i bagnanti occupano soltanto una parte ridotta dell'immagine, $\rho$ è sensibilmente inferiore a uno e il metodo evita di eseguire la ricerca spaziale nella maggior parte della scena. Il guadagno effettivo non è necessariamente proporzionale alla sola riduzione del numero di \textit{pixel}, poiché dipende dall'algoritmo scelto, dal numero di istanze e dal costo di gestione delle regioni sovrapposte.
+
+I dati disponibili non comprendono una misura della segmentazione locale né della latenza completa di \textit{tracking}, descrittori e classificazione. Non è quindi possibile stabilire sperimentalmente se la soluzione ibrida sia complessivamente più veloce di YOLO-SEG o quantificare il vantaggio rispetto all'intera implementazione originale di DEWS.
+
+Dal punto di vista architetturale, YOLO-SEG rappresenta dunque l'integrazione più immediata e mantiene integralmente le informazioni richieste dalle fasi successive. YOLO \textit{Detection} costituisce un'alternativa compatibile purché sia affiancato da un segmentatore eseguito nelle regioni rilevate; la minore latenza del \textit{detector} lascia un margine per tale elaborazione, ma la convenienza complessiva deve essere verificata mediante una misura \textit{end-to-end}. In base ai risultati disponibili e alle considerazioni appena esposte, YOLO26-S-SEG offre il compromesso più favorevole per una prima integrazione, poiché fornisce direttamente le maschere con un tempo di inferenza contenuto. Ne risulta una soluzione che semplifica il punto di integrazione e conserva, al contempo, le informazioni necessarie al riconoscimento del comportamento del bagnante.
